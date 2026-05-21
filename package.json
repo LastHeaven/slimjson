@@ -1,6 +1,6 @@
 {
   "name": "slimjson",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "main": "compress.js",
   "exports": {
     ".": {
