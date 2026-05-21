@@ -249,6 +249,10 @@ npm test
 node compress-test.js
 ```
 
+## GitHub
+
+[https://github.com/LastHeaven/slimjson](https://github.com/LastHeaven/slimjson)
+
 ## License
 
 MIT
