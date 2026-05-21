@@ -1,6 +1,6 @@
 {
   "name": "slimjson",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "main": "compress.js",
   "exports": {
     ".": {
@@ -11,10 +11,14 @@
   "scripts": {
     "test": "jest"
   },
-  "author": "",
+  "author": "lastheaven",
   "license": "MIT",
-  "description": "",
+  "description": "轻量级对象数组压缩工具",
   "devDependencies": {
     "jest": "^30.4.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LastHeaven/slimjson.git"
   }
 }
