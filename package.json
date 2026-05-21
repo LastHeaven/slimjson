@@ -1,0 +1,20 @@
+{
+  "name": "slimjson",
+  "version": "1.0.0",
+  "main": "compress.js",
+  "exports": {
+    ".": {
+      "import": "./esm.mjs",
+      "require": "./compress.js"
+    }
+  },
+  "scripts": {
+    "test": "jest"
+  },
+  "author": "",
+  "license": "MIT",
+  "description": "",
+  "devDependencies": {
+    "jest": "^30.4.2"
+  }
+}
