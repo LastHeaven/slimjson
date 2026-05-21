@@ -251,4 +251,4 @@ node compress-test.js
 
 ## License
 
-ISC
+MIT
