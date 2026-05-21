@@ -1,14 +1,17 @@
 # slimjson
 
+中文 | [English](./README_EN.md)
+
 轻量级对象数组压缩工具 — 将重复 key 的 JSON 对象数组转换为 `{ keys, rows }` 紧凑格式，并支持序列化时省略 `null` 以进一步减小体积。
 
 ## 适用场景
 
-- 后端返回列表接口时，每个对象都携带相同的 key 名，大量冗余
-- 不同对象可能拥有不同的字段（后端按需 omit null 字段）
-- 需要在网络传输中极致压缩 JSON 文本体积
+- **API 列表接口**：后端返回列表接口时，每个对象都携带相同的 key 名，大量冗余
+- **异构字段**：不同对象可能拥有不同的字段（后端按需 omit null 字段）
+- **网络传输压缩**：需要在网络传输中极致压缩 JSON 文本体积
 - **大模型上下文压缩**：将大量结构化数据（如数据库查询结果、API 响应、知识库条目）压缩后送入 prompt，减少 token 消耗，降低调用成本
 - **大模型工具调用**：function calling / tool_use 返回的结果往往是结构化的对象数组，压缩后再回传给模型，可显著减少上下文窗口占用，让模型在有限 token 内处理更复杂的数据
+- **大模型识别友好**：压缩后的 `{ keys, rows }` 格式将 schema（字段定义）与数据分离，key 只出现一次，模型能更准确地理解数据结构、按字段名提取信息，比重复 key 的原始 JSON 更不容易混淆
 
 ## 安装
 
@@ -23,7 +26,7 @@ npm install slimjson
 将对象数组压缩为 `{ keys, rows }` 结构：
 
 ```js
-const { compress } = require('slimjson');
+import { compress } from 'slimjson';
 
 const users = [
   { name: 'Alice', age: 25, city: 'NYC' },
@@ -137,6 +140,13 @@ stringify(compress(orders));
 //            ^^^^^^^^^^^^^^^^^^^^^^^^^^^ specs 中缺失字段用空槽省略 null ^^^^^^^^^^^^^^^^^^^^^^^^
 ```
 
+#### 单对象示例
+```js
+compress({ name: 'Alice', age: 25 });
+// 等价于 compress([{ name: 'Alice', age: 25 }])
+// { keys: ['name', 'age'], rows: [['Alice', 25]] }
+```
+
 ### `decompress(compressed)`
 
 将 `{ keys, rows }` 还原为原始对象数组：
@@ -148,7 +158,7 @@ const restored = decompress(compressed);
 
 ### `stringify(compressed)`
 
-将 compress 结果序列化为文本，数组中 `null` 值被省略（保留逗号占位），安全的字符串省略引号：
+将 compress 结果序列化为紧凑文本。相比 `JSON.stringify`，应用了以下优化规则：
 
 ```js
 const data = [
@@ -158,23 +168,65 @@ const data = [
 
 const text = stringify(compress(data));
 // {keys:[name,age],rows:[[Alice,25],[Bob,30]]}
-```
 
-对比 JSON.stringify：
-```js
 JSON.stringify(compress(data));
 // {"keys":["name","age"],"rows":[["Alice",25],["Bob",30]]}
-//  ↑ 引号 ↑                    ↑ 引号 ↑
 ```
 
-数组 null 省略规则：
+#### 序列化规则一览
+
+| 值类型 | 序列化结果 | 说明 |
+|--------|-----------|------|
+| `null` / `undefined` | `null` | — |
+| 有限数字 | `25` | 直接输出，无引号 |
+| `NaN` / `Infinity` | `null` | 非有限数统一输出 null |
+| `true` / `false` | `true` / `false` | — |
+| 安全字符串 | `Alice` | 省略引号（见下方规则） |
+| 非安全字符串 | `"hello world"` | 保留 JSON 引号和转义 |
+| 嵌套对象 `{k: v}` | `{k:v}` | key 同样区分安全/非安全 |
+| 数组 | 见下方 null 省略规则 | — |
+
+#### 安全字符串（可省略引号的条件）
+
+满足以下**全部**条件的字符串可省略引号，否则保留 `JSON.stringify` 转义：
+
+1. 非空字符串
+2. 不是关键字字面量：`null`、`true`、`false`
+3. 不匹配数字模式：`/^-?(0|[1-9]\d*)(\.\d+)?([eE][+-]?\d+)?$/`（如 `"123"`、`"-3.14"`、`"1e10"` 均保留引号）
+4. 不以数字或减号 `-` 开头
+5. 不含空白、`[`、`]`、`{`、`}`、`,`、`:`、`"` 等字符
+
+| 字符串 | 结果 | 原因 |
+|--------|------|------|
+| `"Alice"` | `Alice` | 安全，省略引号 |
+| `"hello world"` | `"hello world"` | 含空格 |
+| `"123"` | `"123"` | 看起来像数字 |
+| `"-3.14"` | `"-3.14"` | 看起来像数字 |
+| `"null"` | `"null"` | 关键字 |
+| `""` | `""` | 空字符串 |
+| `"-abc"` | `"-abc"` | 以减号开头 |
+| `"a:b"` | `"a:b"` | 含冒号 |
+
+#### 对象 key 引号规则
+
+`keys` 中的嵌套对象 key 同样适用安全字符串判断：
+
+```js
+stringify({ keys: [{ profile: ['name', 'age'] }], rows: [...] });
+// {keys:[{profile:[name,age]}],rows:[...]}   ← profile 是安全 key，省略引号
+
+stringify({ keys: [{ "my-key": ['name'] }], rows: [...] });
+// {keys:[{"my-key":[name]}],rows:[...]}      ← my-key 含减号，保留引号
+```
+
+#### 数组 null 省略规则
+
+数组中的 `null` / `undefined` 被省略为逗号空槽，不占文字体积：
 
 | 原始数组                 | 序列化结果      | 说明 |
 |----------------------|------------|------|
 | `["a", null, null]`  | `[a,,]`    | 尾部两个空槽 |
 | `[null, 1, null]`    | `[,1,]`    | 前后空槽 |
-| `[null, "1", null]`  | `[,"1",]`  | 前后空槽 |
-| `[null, "1a", null]` | `[,"1a",]` | 前后空槽 |
 | `[]`                 | `[]`       | 空数组 |
 | `[null]`             | `[null]`   | **特殊**：`[,]` 代表 2 个 null，因此单 null 保留文字 |
 
@@ -192,7 +244,7 @@ const parsed = parse(text);
 ## 完整使用示例
 
 ```js
-const { compress, decompress, stringify, parse } = require('slimjson');
+import { compress, decompress, stringify, parse } from 'slimjson';
 
 const data = [
   { name: '张三', age: 28, profile: { avatar: 'a.jpg', bio: 'Hello' } },
