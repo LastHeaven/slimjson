@@ -2,7 +2,7 @@
 
 [中文](./README.md) | English
 
-A lightweight object array compression tool — converts JSON object arrays with repeated keys into a compact `{ keys, rows }` format, with support for omitting `null` values during serialization to further reduce size.
+A lightweight object array compression tool — converts JSON object arrays with repeated keys into a compact `{ schema, data }` format, with support for omitting `null` values during serialization to further reduce size.
 
 ## Use Cases
 
@@ -11,7 +11,7 @@ A lightweight object array compression tool — converts JSON object arrays with
 - **Network Transfer Compression**: Minimizing JSON text size for network transmission
 - **LLM Context Compression**: Compress large structured data (e.g. database query results, API responses, knowledge base entries) before sending to prompts, reducing token consumption and API costs
 - **LLM Tool Calling**: function calling / tool_use results are often structured object arrays — compressing them before feeding back to the model significantly reduces context window usage, enabling the model to handle more complex data within limited tokens
-- **LLM-Friendly Format**: The compressed `{ keys, rows }` format separates schema (field definitions) from data, with each key appearing only once. Models can more accurately understand data structures and extract information by field name, with less confusion compared to raw JSON with repeated keys
+- **LLM-Friendly Format**: The compressed `{ schema, data }` format separates schema (field definitions) from data, with each key appearing only once. Models can more accurately understand data structures and extract information by field name, with less confusion compared to raw JSON with repeated keys
 
 ## Installation
 
@@ -23,7 +23,7 @@ npm install slimjson
 
 ### `compress(source, opts?)`
 
-Compresses an object array into a `{ keys, rows }` structure:
+Compresses an object array into a `{ schema, data }` structure:
 
 ```js
 import { compress } from 'slimjson';
@@ -35,11 +35,8 @@ const users = [
 
 const compressed = compress(users);
 // {
-//   keys: ['name', 'age', 'city'],
-//   rows: [
-//     ['Alice', 25, 'NYC'],
-//     ['Bob',   30, 'LA' ]
-//   ]
+//   schema: [['name', 'age', 'city']],
+//   data: [['Alice', 25, 'NYC'], ['Bob', 30, 'LA']]
 // }
 ```
 
@@ -52,9 +49,9 @@ const compressed = compress(users);
 | `opts.trimTrailingNulls` | `boolean` | `false` | Remove trailing `null` values from each row |
 
 **Features:**
-- `keys` takes the union of all object keys, ordered by first appearance
-- Missing fields in an object → fill `null` at the corresponding row position
-- Nested objects are recursively processed: represented as `{ "fieldName": [childKeys] }` in `keys`
+- `schema` takes the union of all object keys, ordered by first appearance
+- Missing fields in an object → fill `null` at the corresponding data position
+- Nested objects are recursively processed: represented as `{ "fieldName": [childKeys] }` in `schema`
 - Object arrays (e.g. order items) are recursively compressed the same way
 - When a plain object is passed (not an array), it is treated as a single-element array
 
@@ -69,8 +66,8 @@ const data = [
 
 compress(data);
 // {
-//   keys: ['name', 'age', { profile: ['avatar', 'bio', 'file'] }],
-//   rows: [
+//   schema: [['name', 'age', { profile: ['avatar', 'bio', 'file'] }]],
+//   data: [
 //     ['Alice', 28, ['a.jpg', 'Hello', null]],
 //     ['Bob',   35, ['b.jpg', null, null]],
 //     ['Carol', null, null]
@@ -85,8 +82,8 @@ When enabled, trailing `null` values in each row (and nested sub-rows) are remov
 ```js
 compress(data, { trimTrailingNulls: true });
 // {
-//   keys: ['name', 'age', { profile: ['avatar', 'bio', 'file'] }],
-//   rows: [
+//   schema: [['name', 'age', { profile: ['avatar', 'bio', 'file'] }]],
+//   data: [
 //     ['Alice', 28, ['a.jpg', 'Hello']],
 //     ['Bob',   35, ['b.jpg']],
 //     ['Carol']
@@ -115,16 +112,13 @@ const orders = [
 
 compress(orders);
 // {
-//   keys: ['orderId', { items: ['name', 'price'] }],
-//   rows: [
-//     ['A001', [['Keyboard', 299], ['Mouse', 99]]],
-//     ['A002', [['Monitor', 1999]]]
-//   ]
+//   schema: [['orderId', { items: [['name', 'price']] }]],
+//   data: [['A001', [['Keyboard', 299], ['Mouse', 99]]], ['A002', [['Monitor', 1999]]]]
 // }
 
 stringify(compress(orders));
-// {keys:[orderId,{items:[name,price]}],rows:[[A001,[[Keyboard,299],[Mouse,99]]],[A002,[[Monitor,1999]]]]}
-//                ^^^^^ nested object key, no quotes    ^^^^ safe string value, no quotes
+// {schema:[[orderId,{items:[[name,price]]}]],data:[[A001,[[Keyboard,299],[Mouse,99]]],[A002,[[Monitor,1999]]]]}
+//                  ^^^^^ nested object key, no quotes    ^^^^ safe string value, no quotes
 ```
 
 #### Three-Level Nesting Example (Order → Item → Specs)
@@ -150,12 +144,12 @@ const orders = [
 
 compress(orders);
 // {
-//   keys: [
+//   schema: [[
 //     'orderId',
 //     'customer',
-//     { items: ['name', 'price', { specs: ['color', 'layout', 'dpi', 'size'] }] }
-//   ],
-//   rows: [
+//     { items: [['name', 'price', { specs: ['color', 'layout', 'dpi', 'size'] }]] }
+//   ]],
+//   data: [
 //     ['A001', 'Alice', [
 //       ['Keyboard', 299, ['Black', '104-key', null, null]],
 //       ['Mouse',    99,  ['White', null, '4000', null]]
@@ -165,24 +159,24 @@ compress(orders);
 //     ]]
 //   ]
 // }
-// specs keys take the union: order 1 has layout, order 2 has size → both kept, missing fields filled with null
+// specs schema takes the union: order 1 has layout, order 2 has size → both kept, missing fields filled with null
 
 compress(orders, { trimTrailingNulls: true });
-// rows become:
+// data becomes:
 // [
 //   ['A001', 'Alice', [
 //     ['Keyboard', 299, ['Black', '104-key']],
 //     ['Mouse',    99,  ['White', null, '4000']]
 //   ]],
 //   ['A002', 'Bob', [
-//     ['Monitor', 1999, ['Silver']]
+//     ['Monitor', 1999, ['Silver', null, null, '27in']]
 //   ]]
 // ]
 ```
 
 ### `decompress(compressed)`
 
-Restores `{ keys, rows }` back to the original object array. Missing trailing values are automatically filled with `null`:
+Restores `{ schema, data }` back to the original object array. Missing trailing values are automatically filled with `null`:
 
 ```js
 const restored = decompress(compressed);
@@ -200,10 +194,10 @@ const data = [
 ];
 
 const text = stringify(compress(data));
-// {keys:[name,age],rows:[[Alice,25],[Bob,30]]}
+// {schema:[[name,age]],data:[[Alice,25],[Bob,30]]}
 
 JSON.stringify(compress(data));
-// {"keys":["name","age"],"rows":[["Alice",25],["Bob",30]]}
+// {"schema":[["name","age"]],"data":[["Alice",25],["Bob",30]]}
 ```
 
 #### Serialization Rules
@@ -242,14 +236,14 @@ A string can omit quotes only when it satisfies **all** of the following conditi
 
 #### Object Key Quoting Rules
 
-Nested object keys in `keys` follow the same safe string check:
+Nested object keys in `schema` follow the same safe string check:
 
 ```js
-stringify({ keys: [{ profile: ['name', 'age'] }], rows: [...] });
-// {keys:[{profile:[name,age]}],rows:[...]}   ← profile is safe, quotes omitted
+stringify({ schema: [{ profile: ['name', 'age'] }], data: [...] });
+// {schema:[{profile:[name,age]}],data:[...]}   ← profile is safe, quotes omitted
 
-stringify({ keys: [{ "my-key": ['name'] }], rows: [...] });
-// {keys:[{"my-key":[name]}],rows:[...]}      ← my-key contains hyphen, quotes retained
+stringify({ schema: [{ "my key": ['name'] }], data: [...] });
+// {schema:[{"my key":[name]}],data:[...]}      ← my key contains space, quotes retained
 ```
 
 #### Array Null Omission Rules
@@ -313,14 +307,24 @@ Based on actual data from `compress-test.js` benchmarks (18 test cases, all roun
 
 | Data Type | Count | Original | No trim | Ratio | Trim | Ratio | Diff |
 |-----------|-------|----------|---------|-------|------|-------|------|
-| Simple users | 1,000 | 147.61 KB | 87.12 KB | 40.98% | 87.12 KB | 40.98% | — |
-| Simple users | 10,000 | 1.45 MB | 882.51 KB | 40.69% | 882.51 KB | 40.69% | — |
-| Nested users (with profile.social) | 1,000 | 235.70 KB | 153.56 KB | 34.85% | 153.27 KB | 34.97% | -294 B |
-| Orders (1-5 items per order) | 500 | 166.95 KB | 72.30 KB | 56.69% | 72.30 KB | 56.69% | — |
-| School data (6 grades x 4 classes x 30 students) | 24 | 214.86 KB | 88.88 KB | 58.63% | 88.53 KB | 58.80% | -365 B |
-| Sparse fields (500 records x 30 fields) | 500 | 144.61 KB | 45.40 KB | 68.60% | 45.13 KB | 68.79% | -276 B |
-| Sparse fields (2000 records x 50 fields) | 2,000 | 951.94 KB | 293.62 KB | 69.16% | 292.49 KB | 69.27% | -1.13 KB |
-| Deep nesting (5-level org structure) | 5 | 634.60 KB | 289.02 KB | 54.46% | 289.02 KB | 54.46% | — |
+| Simple users | 100 | 14.69 KB | 8.69 KB | 40.82% | 8.69 KB | 40.82% | — |
+| Simple users | 1,000 | 147.74 KB | 87.25 KB | 40.94% | 87.25 KB | 40.94% | — |
+| Simple users | 10,000 | 1.45 MB | 881.58 KB | 40.71% | 881.58 KB | 40.71% | — |
+| Nested users (with profile.social) | 100 | 23.41 KB | 15.28 KB | 34.74% | 15.24 KB | 34.87% | -33 B |
+| Nested users (with profile.social) | 1,000 | 236.03 KB | 153.93 KB | 34.78% | 153.64 KB | 34.91% | -301 B |
+| Nested users (with profile.social) | 5,000 | 1.16 MB | 777.89 KB | 34.58% | 776.42 KB | 34.70% | -1.47 KB |
+| Orders (1-5 items per order) | 100 | 31.28 KB | 13.65 KB | 56.38% | 13.65 KB | 56.38% | — |
+| Orders (1-5 items per order) | 500 | 163.18 KB | 70.83 KB | 56.59% | 70.83 KB | 56.59% | — |
+| Orders (1-5 items per order) | 2,000 | 655.99 KB | 284.29 KB | 56.66% | 284.29 KB | 56.66% | — |
+| School data (2 grades x 2 classes x 10 students) | 4 | 12.26 KB | 5.25 KB | 57.20% | 5.23 KB | 57.36% | -21 B |
+| School data (6 grades x 4 classes x 30 students) | 24 | 217.73 KB | 89.71 KB | 58.80% | 89.31 KB | 58.98% | -406 B |
+| School data (6 grades x 6 classes x 50 students) | 36 | 539.64 KB | 222.56 KB | 58.76% | 221.66 KB | 58.92% | -923 B |
+| Sparse fields (100 records x 20 fields) | 100 | 19.50 KB | 6.34 KB | 67.46% | 6.28 KB | 67.78% | -64 B |
+| Sparse fields (500 records x 30 fields) | 500 | 143.26 KB | 45.09 KB | 68.52% | 44.78 KB | 68.74% | -326 B |
+| Sparse fields (2000 records x 50 fields) | 2,000 | 957.96 KB | 294.69 KB | 69.24% | 293.54 KB | 69.36% | -1.15 KB |
+| Deep nesting (small) | 2 | 17.47 KB | 8.08 KB | 53.73% | 8.08 KB | 53.73% | — |
+| Deep nesting (medium) | 3 | 141.89 KB | 64.55 KB | 54.50% | 64.55 KB | 54.50% | — |
+| Deep nesting (large) | 5 | 629.42 KB | 286.40 KB | 54.50% | 286.40 KB | 54.50% | — |
 
 **Conclusions:**
 1. Longer field names and more fields yield better compression
@@ -330,6 +334,151 @@ Based on actual data from `compress-test.js` benchmarks (18 test cases, all roun
 5. When data has no missing fields, trim provides no extra benefit
 6. Deeper nested structures achieve better compression
 7. `stringify` quote omission further reduces text size
+
+## Token Efficiency Comparison
+
+Token consumption comparison across formats (based on 6 real-world datasets).
+
+#### Mixed-Structure Track
+
+Datasets with nested or semi-uniform structures. CSV excluded as it cannot represent these structures.
+
+```
+🛒 E-commerce orders (nested)  ┊  Tabular: 33%
+   │
+   slimjson            ████████░░░░░░░░░░░░    46,233 tokens
+   ├─ vs JSON          (−57.8%)               109,574 tokens
+   ├─ vs JSON compact  (−33.5%)                69,528 tokens
+   ├─ vs TOON          (−36.9%)                73,246 tokens
+   ├─ vs YAML          (−45.9%)                85,451 tokens
+   └─ vs XML           (−62.5%)               123,272 tokens
+
+📃 Semi-uniform event logs  ┊  Tabular: 50%
+   │
+   slimjson            ██████████░░░░░░░░░░    91,630 tokens
+   ├─ vs JSON          (−49.4%)               181,141 tokens
+   ├─ vs JSON compact  (−28.7%)               128,480 tokens
+   ├─ vs TOON          (−40.5%)               154,032 tokens
+   ├─ vs YAML          (−41.0%)               155,346 tokens
+   └─ vs XML           (−55.5%)               205,796 tokens
+
+🧩 Deeply nested configuration  ┊  Tabular: 0%
+   │
+   slimjson            ████████████░░░░░░░░       547 tokens
+   ├─ vs JSON          (−39.6%)                   905 tokens
+   ├─ vs JSON compact  (−0.9%)                    552 tokens
+   ├─ vs TOON          (−11.5%)                   618 tokens
+   ├─ vs YAML          (−17.4%)                   662 tokens
+   └─ vs XML           (−45.1%)                   997 tokens
+
+──────────────────────────────────── Total ────────────────────────────────────
+   slimjson            █████████░░░░░░░░░░░   138,410 tokens
+   ├─ vs JSON          (−52.5%)               291,620 tokens
+   ├─ vs JSON compact  (−30.3%)               198,560 tokens
+   ├─ vs TOON          (−39.3%)               227,896 tokens
+   ├─ vs YAML          (−42.7%)               241,459 tokens
+   └─ vs XML           (−58.1%)               330,065 tokens
+```
+
+#### Flat-Only Track
+
+Flat tabular datasets where CSV is applicable.
+
+```
+👥 Uniform employee records  ┊  Tabular: 100%
+   │
+   CSV                 ████████████████████    47,137 tokens
+   slimjson            ████████████████████    47,067 tokens   (-0.1% vs CSV)
+   ├─ vs JSON          (−63.0%)               127,050 tokens
+   ├─ vs JSON compact  (−40.5%)                79,046 tokens
+   ├─ vs TOON          (−5.8%)                 49,966 tokens
+   ├─ vs YAML          (−52.9%)               100,033 tokens
+   └─ vs XML           (−67.9%)               146,596 tokens
+
+📈 Time-series analytics data  ┊  Tabular: 100%
+   │
+   CSV                 ███████████████████░     8,392 tokens
+   slimjson            ████████████████████     8,767 tokens   (+4.5% vs CSV)
+   ├─ vs JSON          (−60.6%)                22,254 tokens
+   ├─ vs JSON compact  (−38.3%)                14,220 tokens
+   ├─ vs TOON          (−3.9%)                  9,124 tokens
+   ├─ vs YAML          (−50.9%)                17,867 tokens
+   └─ vs XML           (−67.1%)                26,625 tokens
+
+⭐ Top 100 GitHub repositories  ┊  Tabular: 100%
+   │
+   CSV                 ████████████████████     8,512 tokens
+   slimjson            ████████████████████     8,550 tokens   (+0.4% vs CSV)
+   ├─ vs JSON          (−43.5%)                15,144 tokens
+   ├─ vs JSON compact  (−25.4%)                11,454 tokens
+   ├─ vs TOON          (−2.2%)                  8,744 tokens
+   ├─ vs YAML          (−34.9%)                13,128 tokens
+   └─ vs XML           (−50.0%)                17,095 tokens
+
+──────────────────────────────────── Total ────────────────────────────────────
+   CSV                 ████████████████████    64,041 tokens
+   slimjson            ████████████████████    64,384 tokens   (+0.5% vs CSV)
+   ├─ vs JSON          (−60.8%)               164,448 tokens
+   ├─ vs JSON compact  (−38.5%)               104,720 tokens
+   ├─ vs TOON          (−5.1%)                 67,834 tokens
+   ├─ vs YAML          (−50.9%)               131,028 tokens
+   └─ vs XML           (−66.2%)               190,316 tokens
+```
+
+> On mixed-structure data, slimjson saves **52.5%** tokens vs JSON. On flat tabular data, it's on par with CSV (only 0.5% more).
+
+## LLM Data Retrieval Accuracy
+
+Accuracy tested with 209 data retrieval questions across different input formats.
+
+#### Efficiency Ranking (Accuracy per 1K Tokens)
+
+```
+slimjson       ████████████████████   44.4 acc%/1K tok  │  94.7% acc  │  2,134 tokens
+TOON           ███████████████░░░░░   34.0 acc%/1K tok  │  92.8% acc  │  2,734 tokens
+JSON compact   ██████████████░░░░░░   31.0 acc%/1K tok  │  95.2% acc  │  3,072 tokens
+YAML           ███████████░░░░░░░░░   25.4 acc%/1K tok  │  94.3% acc  │  3,716 tokens
+JSON           ██████████░░░░░░░░░░   21.1 acc%/1K tok  │  95.7% acc  │  4,538 tokens
+XML            ████████░░░░░░░░░░░░   18.5 acc%/1K tok  │  95.7% acc  │  5,162 tokens
+```
+
+*Efficiency score = (Accuracy % ÷ Tokens) × 1,000. Higher is better.*
+
+> slimjson achieves **94.7%** accuracy (vs JSON's 95.7%) while using **53.0% fewer tokens**.
+
+#### Per-Model Accuracy
+
+```
+deepseek-v4-flash
+  JSON           ███████████████████░    95.7% (200/209)
+  XML            ███████████████████░    95.7% (200/209)
+  JSON compact   ███████████████████░    95.2% (199/209)
+→ slimjson       ███████████████████░    94.7% (198/209)
+  YAML           ███████████████████░    94.3% (197/209)
+  TOON           ███████████████████░    92.8% (194/209)
+  CSV            ██████████████████░░    91.7% (100/109)
+```
+
+#### Accuracy by Question Type
+
+| Question Type | JSON | XML | JSON compact | slimjson | YAML | TOON | CSV |
+|---------------|------|-----|-------------|----------|------|------|-----|
+| Field Retrieval | 98.5% | 97.1% | 98.5% | 95.6% | 97.1% | 91.2% | 96.9% |
+| Aggregation | 98.4% | 96.8% | 95.2% | 95.2% | 93.7% | 95.2% | 86.2% |
+| Filtering | 97.9% | 97.9% | 100.0% | 100.0% | 100.0% | 100.0% | 96.3% |
+| Structure Awareness | 88.0% | 92.0% | 84.0% | 92.0% | 88.0% | 88.0% | 87.5% |
+| Structural Validation | 40.0% | 60.0% | 60.0% | 40.0% | 40.0% | 40.0% | 80.0% |
+
+#### Datasets Tested
+
+| Dataset | Rows | Structure | CSV Support |
+|---------|------|-----------|-------------|
+| Uniform employee records | 100 | uniform | ✓ |
+| E-commerce orders (nested) | 50 | nested | ✗ |
+| Time-series analytics data | 60 | uniform | ✓ |
+| Top 100 GitHub repositories | 100 | uniform | ✓ |
+| Semi-uniform event logs | 75 | semi-uniform | ✗ |
+| Deeply nested configuration | 11 | deep | ✗ |
 
 ## Development
 

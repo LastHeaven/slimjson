@@ -2,7 +2,7 @@
 
 中文 | [English](./README_EN.md)
 
-轻量级对象数组压缩工具 — 将重复 key 的 JSON 对象数组转换为 `{ keys, rows }` 紧凑格式，并支持序列化时省略 `null` 以进一步减小体积。
+轻量级对象数组压缩工具 — 将重复 key 的 JSON 对象数组转换为 `{ schema, data }` 紧凑格式，并支持序列化时省略 `null` 以进一步减小体积。
 
 ## 适用场景
 
@@ -11,7 +11,7 @@
 - **网络传输压缩**：需要在网络传输中极致压缩 JSON 文本体积
 - **大模型上下文压缩**：将大量结构化数据（如数据库查询结果、API 响应、知识库条目）压缩后送入 prompt，减少 token 消耗，降低调用成本
 - **大模型工具调用**：function calling / tool_use 返回的结果往往是结构化的对象数组，压缩后再回传给模型，可显著减少上下文窗口占用，让模型在有限 token 内处理更复杂的数据
-- **大模型识别友好**：压缩后的 `{ keys, rows }` 格式将 schema（字段定义）与数据分离，key 只出现一次，模型能更准确地理解数据结构、按字段名提取信息，比重复 key 的原始 JSON 更不容易混淆
+- **大模型识别友好**：压缩后的 `{ schema, data }` 格式将 schema（字段定义）与数据分离，key 只出现一次，模型能更准确地理解数据结构、按字段名提取信息，比重复 key 的原始 JSON 更不容易混淆
 
 ## 安装
 
@@ -23,7 +23,7 @@ npm install slimjson
 
 ### `compress(source, opts?)`
 
-将对象数组压缩为 `{ keys, rows }` 结构：
+将对象数组压缩为 `{ schema, data }` 结构：
 
 ```js
 import { compress } from 'slimjson';
@@ -35,11 +35,8 @@ const users = [
 
 const compressed = compress(users);
 // {
-//   keys: ['name', 'age', 'city'],
-//   rows: [
-//     ['Alice', 25, 'NYC'],
-//     ['Bob',   30, 'LA' ]
-//   ]
+//   schema: [['name', 'age', 'city']],
+//   data: [['Alice', 25, 'NYC'], ['Bob', 30, 'LA']]
 // }
 ```
 
@@ -52,9 +49,9 @@ const compressed = compress(users);
 | `opts.trimTrailingNulls` | `boolean` | `false` | 是否去除行尾的 `null` 值 |
 
 **特点：**
-- `keys` 取所有对象的 key 并集，按首次出现顺序排列
-- 某对象缺失某字段 → 对应 row 位置填充 `null`
-- 嵌套对象递归处理：`keys` 中表示为 `{ "fieldName": [childKeys] }`
+- `schema` 取所有对象的 key 并集，按首次出现顺序排列
+- 某对象缺失某字段 → 对应 data 位置填充 `null`
+- 嵌套对象递归处理：`schema` 中表示为 `{ "fieldName": [childKeys] }`
 - 对象数组（如订单条目）同样递归压缩
 - 当传入的是对象时，会当成数组中只有一个对象处理
 
@@ -69,8 +66,8 @@ const data = [
 
 compress(data);
 // {
-//   keys: ['name', 'age', { profile: ['avatar', 'bio', 'file'] }],
-//   rows: [
+//   schema: [['name', 'age', { profile: ['avatar', 'bio', 'file'] }]],
+//   data: [
 //     ['张三', 28, ['a.jpg', 'Hello', null]],
 //     ['李四', 35, ['b.jpg', null, null]],
 //     ['王五', null, null]
@@ -85,8 +82,8 @@ compress(data);
 ```js
 compress(data, { trimTrailingNulls: true });
 // {
-//   keys: ['name', 'age', { profile: ['avatar', 'bio', 'file'] }],
-//   rows: [
+//   schema: [['name', 'age', { profile: ['avatar', 'bio', 'file'] }]],
+//   data: [
 //     ['张三', 28, ['a.jpg', 'Hello']],
 //     ['李四', 35, ['b.jpg']],
 //     ['王五']
@@ -115,16 +112,13 @@ const orders = [
 
 compress(orders);
 // {
-//   keys: ['orderId', { items: ['name', 'price'] }],
-//   rows: [
-//     ['A001', [['键盘', 299], ['鼠标', 99]]],
-//     ['A002', [['显示器', 1999]]]
-//   ]
+//   schema: [['orderId', { items: [['name', 'price']] }]],
+//   data: [['A001', [['键盘', 299], ['鼠标', 99]]], ['A002', [['显示器', 1999]]]]
 // }
 
 stringify(compress(orders));
-// {keys:[orderId,{items:[name,price]}],rows:[[A001,[[键盘,299],[鼠标,99]]],[A002,[[显示器,1999]]]]}
-//                ^^^^^ 嵌套对象 key 无引号    ^^^^ 安全字符串 value 无引号
+// {schema:[[orderId,{items:[[name,price]]}]],data:[[A001,[[键盘,299],[鼠标,99]]],[A002,[[显示器,1999]]]]}
+//                  ^^^^^ 嵌套对象 key 无引号    ^^^^ 安全字符串 value 无引号
 ```
 
 #### 三层嵌套示例（订单 → 商品 → 规格）
@@ -150,12 +144,12 @@ const orders = [
 
 compress(orders);
 // {
-//   keys: [
+//   schema: [[
 //     'orderId',
 //     'customer',
-//     { items: ['name', 'price', { specs: ['color', 'layout', 'dpi', 'size'] }] }
-//   ],
-//   rows: [
+//     { items: [['name', 'price', { specs: ['color', 'layout', 'dpi', 'size'] }]] }
+//   ]],
+//   data: [
 //     ['A001', '张三', [
 //       ['键盘', 299, ['黑色', '104键', null, null]],
 //       ['鼠标', 99,  ['白色', null, '4000', null]]
@@ -168,32 +162,32 @@ compress(orders);
 // specs 的 key 取并集：第一单有 layout，第二单有 size → 都保留，缺失的填 null
 
 compress(orders, { trimTrailingNulls: true });
-// rows 变为：
+// data 变为：
 // [
 //   ['A001', '张三', [
 //     ['键盘', 299, ['黑色', '104键']],
 //     ['鼠标', 99,  ['白色', null, '4000']]
 //   ]],
 //   ['A002', '李四', [
-//     ['显示器', 1999, ['银色']]
+//     ['显示器', 1999, ['银色', null, null, '27寸']]
 //   ]]
 // ]
 
 stringify(compress(orders, { trimTrailingNulls: true }));
-// {keys:[orderId,customer,{items:[name,price,{specs:[color,layout,dpi,size]}]}],rows:[[
-//   A001,张三,[[键盘,299,[黑色,104键]],[鼠标,99,[白色,,4000]]]],[A002,李四,[[显示器,1999,[银色]]]]]}
+// {schema:[[orderId,customer,{items:[[name,price,{specs:[color,layout,dpi,size]}]]}]],data:[[
+//   A001,张三,[[键盘,299,[黑色,"104键"]],[鼠标,99,[白色,,4000]]]],[A002,李四,[[显示器,1999,[银色,,,"27寸"]]]]]}
 ```
 
 #### 单对象示例
 ```js
 compress({ name: 'Alice', age: 25 });
 // 等价于 compress([{ name: 'Alice', age: 25 }])
-// { keys: ['name', 'age'], rows: [['Alice', 25]] }
+// { schema: ['name', 'age'], data: ['Alice', 25] }
 ```
 
 ### `decompress(compressed)`
 
-将 `{ keys, rows }` 还原为原始对象数组。缺失的尾部值会自动补回 `null`：
+将 `{ schema, data }` 还原为原始对象数组。缺失的尾部值会自动补回 `null`：
 
 ```js
 const restored = decompress(compressed);
@@ -211,10 +205,10 @@ const data = [
 ];
 
 const text = stringify(compress(data));
-// {keys:[name,age],rows:[[Alice,25],[Bob,30]]}
+// {schema:[[name,age]],data:[[Alice,25],[Bob,30]]}
 
 JSON.stringify(compress(data));
-// {"keys":["name","age"],"rows":[["Alice",25],["Bob",30]]}
+// {"schema":[["name","age"]],"data":[["Alice",25],["Bob",30]]}
 ```
 
 #### 序列化规则一览
@@ -253,14 +247,14 @@ JSON.stringify(compress(data));
 
 #### 对象 key 引号规则
 
-`keys` 中的嵌套对象 key 同样适用安全字符串判断：
+`schema` 中的嵌套对象 key 同样适用安全字符串判断：
 
 ```js
-stringify({ keys: [{ profile: ['name', 'age'] }], rows: [...] });
-// {keys:[{profile:[name,age]}],rows:[...]}   ← profile 是安全 key，省略引号
+stringify({ schema: [{ profile: ['name', 'age'] }], data: [...] });
+// {schema:[{profile:[name,age]}],data:[...]}   ← profile 是安全 key，省略引号
 
-stringify({ keys: [{ "my-key": ['name'] }], rows: [...] });
-// {keys:[{"my-key":[name]}],rows:[...]}      ← my-key 含减号，保留引号
+stringify({ schema: [{ "my key": ['name'] }], data: [...] });
+// {schema:[{"my key":[name]}],data:[...]}      ← my key 含空格，保留引号
 ```
 
 #### 数组 null 省略规则
@@ -324,14 +318,24 @@ console.log(`压缩率: ${ratio}%`);
 
 | 数据类型 | 对象数 | 原始大小 | 不 trim | 压缩率 | trim | 压缩率 | 差值 |
 |---------|-------|---------|---------|-------|------|-------|------|
-| 简单用户 | 1,000 | 147.61 KB | 87.12 KB | 40.98% | 87.12 KB | 40.98% | — |
-| 简单用户 | 10,000 | 1.45 MB | 882.51 KB | 40.69% | 882.51 KB | 40.69% | — |
-| 嵌套用户（含 profile.social） | 1,000 | 235.70 KB | 153.56 KB | 34.85% | 153.27 KB | 34.97% | -294 B |
-| 订单（每单1-5商品） | 500 | 166.95 KB | 72.30 KB | 56.69% | 72.30 KB | 56.69% | — |
-| 学校数据（6年级×4班×30生） | 24 | 214.86 KB | 88.88 KB | 58.63% | 88.53 KB | 58.80% | -365 B |
-| 稀疏字段（500条×30字段） | 500 | 144.61 KB | 45.40 KB | 68.60% | 45.13 KB | 68.79% | -276 B |
-| 稀疏字段（2000条×50字段） | 2,000 | 951.94 KB | 293.62 KB | 69.16% | 292.49 KB | 69.27% | -1.13 KB |
-| 深层嵌套（5层组织结构） | 5 | 634.60 KB | 289.02 KB | 54.46% | 289.02 KB | 54.46% | — |
+| 简单用户 | 100 | 14.69 KB | 8.69 KB | 40.82% | 8.69 KB | 40.82% | — |
+| 简单用户 | 1,000 | 147.74 KB | 87.25 KB | 40.94% | 87.25 KB | 40.94% | — |
+| 简单用户 | 10,000 | 1.45 MB | 881.58 KB | 40.71% | 881.58 KB | 40.71% | — |
+| 嵌套用户（含 profile.social） | 100 | 23.41 KB | 15.28 KB | 34.74% | 15.24 KB | 34.87% | -33 B |
+| 嵌套用户（含 profile.social） | 1,000 | 236.03 KB | 153.93 KB | 34.78% | 153.64 KB | 34.91% | -301 B |
+| 嵌套用户（含 profile.social） | 5,000 | 1.16 MB | 777.89 KB | 34.58% | 776.42 KB | 34.70% | -1.47 KB |
+| 订单（每单1-5商品） | 100 | 31.28 KB | 13.65 KB | 56.38% | 13.65 KB | 56.38% | — |
+| 订单（每单1-5商品） | 500 | 163.18 KB | 70.83 KB | 56.59% | 70.83 KB | 56.59% | — |
+| 订单（每单1-5商品） | 2,000 | 655.99 KB | 284.29 KB | 56.66% | 284.29 KB | 56.66% | — |
+| 学校数据（2年级×2班×10生） | 4 | 12.26 KB | 5.25 KB | 57.20% | 5.23 KB | 57.36% | -21 B |
+| 学校数据（6年级×4班×30生） | 24 | 217.73 KB | 89.71 KB | 58.80% | 89.31 KB | 58.98% | -406 B |
+| 学校数据（6年级×6班×50生） | 36 | 539.64 KB | 222.56 KB | 58.76% | 221.66 KB | 58.92% | -923 B |
+| 稀疏字段（100条×20字段） | 100 | 19.50 KB | 6.34 KB | 67.46% | 6.28 KB | 67.78% | -64 B |
+| 稀疏字段（500条×30字段） | 500 | 143.26 KB | 45.09 KB | 68.52% | 44.78 KB | 68.74% | -326 B |
+| 稀疏字段（2000条×50字段） | 2,000 | 957.96 KB | 294.69 KB | 69.24% | 293.54 KB | 69.36% | -1.15 KB |
+| 深层嵌套（小） | 2 | 17.47 KB | 8.08 KB | 53.73% | 8.08 KB | 53.73% | — |
+| 深层嵌套（中） | 3 | 141.89 KB | 64.55 KB | 54.50% | 64.55 KB | 54.50% | — |
+| 深层嵌套（大） | 5 | 629.42 KB | 286.40 KB | 54.50% | 286.40 KB | 54.50% | — |
 
 **结论：**
 1. 字段名越长、数量越多，压缩效果越好
@@ -341,6 +345,151 @@ console.log(`压缩率: ${ratio}%`);
 5. 数据完整无缺失字段时，trim 无额外收益
 6. 深层嵌套结构能获得更好的压缩效果
 7. `stringify` 省略引号进一步减少文本体积
+
+## Token 效率对比
+
+与其他格式的 token 消耗对比（基于 6 个数据集的实际测试）。
+
+#### 混合结构赛道
+
+含嵌套或半均匀结构的数据集。CSV 无法表示此类结构，已排除。
+
+```
+🛒 电商订单（嵌套结构）  ┊  表格化程度: 33%
+   │
+   slimjson            ████████░░░░░░░░░░░░    46,233 tokens
+   ├─ vs JSON          (−57.8%)               109,574 tokens
+   ├─ vs JSON compact  (−33.5%)                69,528 tokens
+   ├─ vs TOON          (−36.9%)                73,246 tokens
+   ├─ vs YAML          (−45.9%)                85,451 tokens
+   └─ vs XML           (−62.5%)               123,272 tokens
+
+📃 半均匀事件日志  ┊  表格化程度: 50%
+   │
+   slimjson            ██████████░░░░░░░░░░    91,630 tokens
+   ├─ vs JSON          (−49.4%)               181,141 tokens
+   ├─ vs JSON compact  (−28.7%)               128,480 tokens
+   ├─ vs TOON          (−40.5%)               154,032 tokens
+   ├─ vs YAML          (−41.0%)               155,346 tokens
+   └─ vs XML           (−55.5%)               205,796 tokens
+
+🧩 深层嵌套配置  ┊  表格化程度: 0%
+   │
+   slimjson            ████████████░░░░░░░░       547 tokens
+   ├─ vs JSON          (−39.6%)                   905 tokens
+   ├─ vs JSON compact  (−0.9%)                    552 tokens
+   ├─ vs TOON          (−11.5%)                   618 tokens
+   ├─ vs YAML          (−17.4%)                   662 tokens
+   └─ vs XML           (−45.1%)                   997 tokens
+
+──────────────────────────────────── 合计 ────────────────────────────────────
+   slimjson            █████████░░░░░░░░░░░   138,410 tokens
+   ├─ vs JSON          (−52.5%)               291,620 tokens
+   ├─ vs JSON compact  (−30.3%)               198,560 tokens
+   ├─ vs TOON          (−39.3%)               227,896 tokens
+   ├─ vs YAML          (−42.7%)               241,459 tokens
+   └─ vs XML           (−58.1%)               330,065 tokens
+```
+
+#### 纯表格赛道
+
+扁平表格结构数据集，CSV 可适用。
+
+```
+👥 均匀员工记录  ┊  表格化程度: 100%
+   │
+   CSV                 ████████████████████    47,137 tokens
+   slimjson            ████████████████████    47,067 tokens   (-0.1% vs CSV)
+   ├─ vs JSON          (−63.0%)               127,050 tokens
+   ├─ vs JSON compact  (−40.5%)                79,046 tokens
+   ├─ vs TOON          (−5.8%)                 49,966 tokens
+   ├─ vs YAML          (−52.9%)               100,033 tokens
+   └─ vs XML           (−67.9%)               146,596 tokens
+
+📈 时间序列分析数据  ┊  表格化程度: 100%
+   │
+   CSV                 ███████████████████░     8,392 tokens
+   slimjson            ████████████████████     8,767 tokens   (+4.5% vs CSV)
+   ├─ vs JSON          (−60.6%)                22,254 tokens
+   ├─ vs JSON compact  (−38.3%)                14,220 tokens
+   ├─ vs TOON          (−3.9%)                  9,124 tokens
+   ├─ vs YAML          (−50.9%)                17,867 tokens
+   └─ vs XML           (−67.1%)                26,625 tokens
+
+⭐ Top 100 GitHub 仓库  ┊  表格化程度: 100%
+   │
+   CSV                 ████████████████████     8,512 tokens
+   slimjson            ████████████████████     8,550 tokens   (+0.4% vs CSV)
+   ├─ vs JSON          (−43.5%)                15,144 tokens
+   ├─ vs JSON compact  (−25.4%)                11,454 tokens
+   ├─ vs TOON          (−2.2%)                  8,744 tokens
+   ├─ vs YAML          (−34.9%)                13,128 tokens
+   └─ vs XML           (−50.0%)                17,095 tokens
+
+──────────────────────────────────── 合计 ────────────────────────────────────
+   CSV                 ████████████████████    64,041 tokens
+   slimjson            ████████████████████    64,384 tokens   (+0.5% vs CSV)
+   ├─ vs JSON          (−60.8%)               164,448 tokens
+   ├─ vs JSON compact  (−38.5%)               104,720 tokens
+   ├─ vs TOON          (−5.1%)                 67,834 tokens
+   ├─ vs YAML          (−50.9%)               131,028 tokens
+   └─ vs XML           (−66.2%)               190,316 tokens
+```
+
+> 在混合结构数据上，slimjson 比 JSON 节省 **52.5%** tokens；在纯表格数据上，与 CSV 基本持平（仅多 0.5%）。
+
+## LLM 数据检索准确率
+
+使用 209 道数据检索题测试不同格式下 LLM 的理解准确率。
+
+#### 效率排名（每 1K tokens 的准确率）
+
+```
+slimjson       ████████████████████   44.4 acc%/1K tok  │  94.7% acc  │  2,134 tokens
+TOON           ███████████████░░░░░   34.0 acc%/1K tok  │  92.8% acc  │  2,734 tokens
+JSON compact   ██████████████░░░░░░   31.0 acc%/1K tok  │  95.2% acc  │  3,072 tokens
+YAML           ███████████░░░░░░░░░   25.4 acc%/1K tok  │  94.3% acc  │  3,716 tokens
+JSON           ██████████░░░░░░░░░░   21.1 acc%/1K tok  │  95.7% acc  │  4,538 tokens
+XML            ████████░░░░░░░░░░░░   18.5 acc%/1K tok  │  95.7% acc  │  5,162 tokens
+```
+
+*效率分数 = (准确率% ÷ tokens) × 1,000，越高越好。*
+
+> slimjson 准确率 **94.7%**（vs JSON 的 95.7%），同时节省 **53.0%** tokens。
+
+#### 各模型准确率
+
+```
+deepseek-v4-flash
+  JSON           ███████████████████░    95.7% (200/209)
+  XML            ███████████████████░    95.7% (200/209)
+  JSON compact   ███████████████████░    95.2% (199/209)
+→ slimjson       ███████████████████░    94.7% (198/209)
+  YAML           ███████████████████░    94.3% (197/209)
+  TOON           ███████████████████░    92.8% (194/209)
+  CSV            ██████████████████░░    91.7% (100/109)
+```
+
+#### 按题型准确率
+
+| 题型 | JSON | XML | JSON compact | slimjson | YAML | TOON | CSV |
+|------|------|-----|-------------|----------|------|------|-----|
+| 字段检索 | 98.5% | 97.1% | 98.5% | 95.6% | 97.1% | 91.2% | 96.9% |
+| 聚合计算 | 98.4% | 96.8% | 95.2% | 95.2% | 93.7% | 95.2% | 86.2% |
+| 条件筛选 | 97.9% | 97.9% | 100.0% | 100.0% | 100.0% | 100.0% | 96.3% |
+| 结构感知 | 88.0% | 92.0% | 84.0% | 92.0% | 88.0% | 88.0% | 87.5% |
+| 结构验证 | 40.0% | 60.0% | 60.0% | 40.0% | 40.0% | 40.0% | 80.0% |
+
+#### 测试数据集
+
+| 数据集 | 行数 | 结构类型 | CSV 支持 |
+|--------|------|----------|----------|
+| 均匀员工记录 | 100 | 均匀 | ✓ |
+| 电商订单（嵌套结构） | 50 | 嵌套 | ✗ |
+| 时间序列分析数据 | 60 | 均匀 | ✓ |
+| Top 100 GitHub 仓库 | 100 | 均匀 | ✓ |
+| 半均匀事件日志 | 75 | 半均匀 | ✗ |
+| 深层嵌套配置 | 11 | 深层 | ✗ |
 
 ## 开发
 

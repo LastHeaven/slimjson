@@ -7,181 +7,302 @@
  * - 缺失的 key 在 rows 中填充 null
  */
 
-/* ============================================================
-   内部辅助：确定一个值的类型分类
-   ============================================================ */
-function getValueKind(v) {
-  if (v === null || v === undefined) return 'null';
-  if (Array.isArray(v)) {
-    if (v.length > 0 && typeof v[0] === 'object' && v[0] !== null && !Array.isArray(v[0])) {
-      return 'object-array';   // [{...}, {...}]
-    }
-    return 'primitive-array';  // [1, 2, 3]  或  []
-  }
-  if (typeof v === 'object') return 'object'; // {...}
-  return 'primitive';
-}
+/**
+ * 合并两个 schema（取键的并集，保持顺序）
+ * 对象 schema 合并键，嵌套数组 schema 递归合并内层，原始值数组取第一个
+ */
+function mergeSchemas(s1, s2) {
+    if (!Array.isArray(s1) || !Array.isArray(s2)) return s1;
 
-/* ============================================================
-   buildKeys — 扫描所有对象，递归构建完整 key 结构
-   ============================================================ */
-function buildKeys(sources) {
-  // ---- 1. 取所有对象 key 的并集，按首次出现顺序排列 ----
-  const orderedKeys = [];
-  const seen = new Set();
-  for (const obj of sources) {
-    if (obj !== null && typeof obj === 'object') {
-      for (const k of Object.keys(obj)) {
-        if (!seen.has(k)) {
-          seen.add(k);
-          orderedKeys.push(k);
+    const first1 = s1[0];
+    const first2 = s2[0];
+
+    // 两者都是对象 schema（元素是字符串或 {key: sub} 对象）→ 合并字段
+    const isObj1 = s1.length === 0 || typeof first1 === 'string' ||
+        (typeof first1 === 'object' && first1 !== null && !Array.isArray(first1));
+    const isObj2 = s2.length === 0 || typeof first2 === 'string' ||
+        (typeof first2 === 'object' && first2 !== null && !Array.isArray(first2));
+
+    if (isObj1 && isObj2) {
+        const merged = [...s1];
+        const existingKeys = new Set();
+        for (const field of merged) {
+            existingKeys.add(typeof field === 'string' ? field : Object.keys(field)[0]);
         }
-      }
-    }
-  }
-
-  const keys = [];
-  for (const keyName of orderedKeys) {
-    // ---- 2. 找第一个非 null/undefined 的值来推断类型 ----
-    let repValue = undefined;
-    for (const obj of sources) {
-      if (obj !== null && typeof obj === 'object') {
-        const v = obj[keyName];
-        if (v !== undefined && v !== null) { repValue = v; break; }
-      }
-    }
-
-    const kind = getValueKind(repValue);
-
-    if (kind === 'object') {
-      // ---- 收集所有非 null 的嵌套对象，合并子 key ----
-      const allNestedObjs = [];
-      for (const obj of sources) {
-        if (obj !== null && typeof obj === 'object') {
-          const v = obj[keyName];
-          if (v !== undefined && v !== null && typeof v === 'object' && !Array.isArray(v)) {
-            allNestedObjs.push(v);
-          }
-        }
-      }
-      keys.push({ [keyName]: buildKeys(allNestedObjs) });
-
-    } else if (kind === 'object-array') {
-      // ---- 收集所有数组中的所有对象，合并子 key ----
-      const allItems = [];
-      for (const obj of sources) {
-        if (obj !== null && typeof obj === 'object') {
-          const arr = obj[keyName];
-          if (Array.isArray(arr)) {
-            for (const item of arr) {
-              if (item !== null && typeof item === 'object') {
-                allItems.push(item);
-              }
+        for (const field of s2) {
+            const key = typeof field === 'string' ? field : Object.keys(field)[0];
+            if (!existingKeys.has(key)) {
+                merged.push(field);
+                existingKeys.add(key);
             }
-          }
         }
-      }
-      keys.push({ [keyName]: buildKeys(allItems) });
-
-    } else {
-      // primitive / primitive-array / null（全当字符串 key 处理）
-      keys.push(keyName);
+        return merged;
     }
-  }
 
-  return keys;
-}
-
-/* ============================================================
-   buildRow — 按 keys 结构将单个源对象转为 row
-   ============================================================ */
-function trimTrailingNulls(arr) {
-  let end = arr.length;
-  while (end > 0 && arr[end - 1] === null) end--;
-  if (end === arr.length) return arr;
-  return arr.slice(0, end);
-}
-
-function buildRow(obj, keys, trim) {
-  const row = [];
-  for (const key of keys) {
-    if (typeof key === 'string') {
-      // 普通字段：缺失则 push null；显式的 undefined 也转 null
-      const v = (obj != null && typeof obj === 'object') ? obj[key] : undefined;
-      row.push(v === undefined ? null : v);
-    } else {
-      // 嵌套结构
-      const [[keyName, childKeys]] = Object.entries(key);
-      const val = obj != null && typeof obj === 'object' ? obj[keyName] : undefined;
-
-      if (val === undefined || val === null) {
-        row.push(null); // 字段缺失或为 null
-
-      } else if (Array.isArray(val)) {
-        // 对象数组
-        const arr = val.map(item => buildRow(item, childKeys, trim));
-        row.push(trim ? arr.map(r => trimTrailingNulls(r)) : arr);
-
-      } else {
-        // 单个嵌套对象
-        const sub = buildRow(val, childKeys, trim);
-        row.push(trim ? trimTrailingNulls(sub) : sub);
-      }
+    // 两者都是数组（不是对象 schema）→ 递归合并第一个元素
+    if (Array.isArray(first1) && Array.isArray(first2)) {
+        return [mergeSchemas(first1, first2)];
     }
-  }
-  if (trim) {
-    return trimTrailingNulls(row);
-  }
-  return row;
+
+    // 其他情况（原始值数组或类型不匹配）→ 取第一个
+    return s1;
 }
 
-/* ============================================================
-   compress / decompress
-   ============================================================ */
-function compress(source, opts) {
-  if (Object.prototype.toString.call(source) === '[object Object]') {
-    source = [source]
-  } else if (!Array.isArray(source) || source.length === 0) {
-    return source;  // 不满足条件直接返回原值
-  }
-  const trim = opts && opts.trimTrailingNulls;
-  const keys = buildKeys(source);
-  const rows = source.map(obj => buildRow(obj, keys, trim));
-  return { keys, rows };
+/**
+ * 推断值的 schema（从所有数据中收集完整结构）
+ */
+function inferSchema(value) {
+    if (Array.isArray(value)) {
+        if (value.length === 0) return [[]];
+        const first = value[0];
+        if (typeof first === 'object' && first !== null && !Array.isArray(first)) {
+            // 对象数组
+            return [inferObjectSchema(value)];
+        }
+        if (Array.isArray(first)) {
+            // 数组的数组：对每个内层数组递归推断 schema，然后合并
+            let merged = null;
+            for (const inner of value) {
+                const s = inferSchema(inner);
+                if (s) {
+                    merged = merged ? mergeSchemas(merged, s) : s;
+                }
+            }
+            return [merged || inferSchema(first)];
+        }
+        // 检查是否含对象（混合数组）
+        const objects = value.filter(v => v && typeof v === 'object' && !Array.isArray(v));
+        if (objects.length > 0) {
+            return [inferObjectSchema(objects)];
+        }
+        // 原始值数组 - 不压缩，由父级处理
+        return undefined;
+    }
+    if (typeof value === 'object' && value !== null) {
+        return inferObjectSchema([value]);
+    }
+    return undefined;
 }
 
+/**
+ * 从多个对象中推断对象 schema（取所有 key 的并集）
+ */
+function inferObjectSchema(objects) {
+    const keyOrder = [];
+    const keyValues = new Map();
+
+    for (const obj of objects) {
+        if (!obj || typeof obj !== 'object' || Array.isArray(obj)) continue;
+        for (const key of Object.keys(obj)) {
+            if (!keyValues.has(key)) {
+                keyOrder.push(key);
+                keyValues.set(key, []);
+            }
+            const val = obj[key];
+            if (val != null) {
+                keyValues.get(key).push(val);
+            }
+        }
+    }
+
+    return keyOrder.map(key => {
+        const values = keyValues.get(key) || [];
+        if (values.length === 0) return key;
+
+        const sample = values[0];
+
+        // 值是对象 → 递归推断对象 schema（单对象，非数组）
+        if (typeof sample === 'object' && sample !== null && !Array.isArray(sample)) {
+            const subObjects = values.filter(v => typeof v === 'object' && v !== null && !Array.isArray(v));
+            return { [key]: inferObjectSchema(subObjects) };
+        }
+
+        // 值是数组
+        if (Array.isArray(sample)) {
+            // 空数组 → 无法推断，用 key 名
+            if (sample.length === 0) return key;
+
+            // 数组元素是对象 → 对象数组：{ key: [objectSchema] }
+            if (typeof sample[0] === 'object' && sample[0] !== null && !Array.isArray(sample[0])) {
+                const allItems = [];
+                for (const v of values) {
+                    if (Array.isArray(v)) {
+                        for (const item of v) {
+                            if (item && typeof item === 'object' && !Array.isArray(item)) {
+                                allItems.push(item);
+                            }
+                        }
+                    }
+                }
+                return { [key]: [inferObjectSchema(allItems)] };
+            }
+
+            // 数组元素是数组 → 检查是否含对象
+            if (Array.isArray(sample[0])) {
+                // 不含对象的嵌套数组（如 [[1,2],[3,4]]）→ 不压缩，直接用 key 名
+                if (!containsObject(sample)) return key;
+
+                // 含对象的嵌套数组 → 递归推断内层 schema 并合并
+                let merged = null;
+                for (const v of values) {
+                    if (Array.isArray(v)) {
+                        const s = inferSchema(v);
+                        if (s) {
+                            // inferSchema 返回 [innerSchema]，取 innerSchema 用于合并
+                            const inner = Array.isArray(s) && s.length === 1 ? s[0] : s;
+                            merged = merged ? mergeSchemas(merged, inner) : inner;
+                        }
+                    }
+                }
+                // 再包一层 [] 表示"数组的数组"
+                return { [key]: [merged || inferSchema(sample[0])] };
+            }
+
+            // 原始值数组（如 ["张三","李四"]）→ 不压缩，直接用 key 名
+            return key;
+        }
+
+        // 原始值 → 直接用 key 名
+        return key;
+    });
+}
+
+/**
+ * 使用已知 schema 压缩值为 data
+ */
+function compressWithSchema(value, schema) {
+    if (schema === undefined) return value;
+
+    // schema 是 [innerSchema] → 值是数组
+    if (Array.isArray(schema) && schema.length === 1 && Array.isArray(schema[0])) {
+        const inner = schema[0];
+        if (!Array.isArray(value)) return null;
+        return value.map(item => compressWithSchema(item, inner));
+    }
+
+    // schema 包含 undefined → 原始值数组，不压缩
+    if (Array.isArray(schema) && schema.some(s => s === undefined || s === null)) {
+        return value;
+    }
+
+    // schema 是数组（对象 schema）→ 值是对象
+    if (Array.isArray(schema)) {
+        if (Array.isArray(value)) return value.length === 0 ? [] : null;
+        if (!value || typeof value !== 'object') return value;
+        return schema.map(fieldDef => {
+            let key, valueSchema;
+            if (typeof fieldDef === 'string') {
+                key = fieldDef;
+                valueSchema = undefined;
+            } else {
+                key = Object.keys(fieldDef)[0];
+                valueSchema = fieldDef[key];
+            }
+            const val = value[key];
+            if (val == null) return null;
+            return compressWithSchema(val, valueSchema);
+        });
+    }
+
+    return value;
+}
+
+/**
+ * 判断值是否包含对象（递归检查）
+ */
+function containsObject(value) {
+    if (value === null || typeof value !== 'object') return false;
+    if (!Array.isArray(value)) return true;
+    for (const item of value) {
+        if (containsObject(item)) return true;
+    }
+    return false;
+}
+
+/**
+ * 递归去掉数组尾部连续 null
+ */
+function trimTrailingNullsDeep(data) {
+    if (!Array.isArray(data)) return data;
+    const trimmed = data.map(item => trimTrailingNullsDeep(item));
+    while (trimmed.length > 0 && trimmed[trimmed.length - 1] === null) {
+        trimmed.pop();
+    }
+    return trimmed;
+}
+
+/**
+ * 压缩任意 JSON 值为 { schema, data } 格式
+ * 不含对象的数组和非对象非数组的值直接返回
+ * @param {any} value - 要压缩的值
+ * @param {object} [options] - 选项
+ * @param {boolean} [options.trimTrailingNulls=false] - 去掉数组尾部连续 null
+ */
+function compress(value, options) {
+    if (!containsObject(value)) return value;
+    const schema = inferSchema(value);
+    let data = compressWithSchema(value, schema);
+    if (options && options.trimTrailingNulls) {
+        data = trimTrailingNullsDeep(data);
+    }
+    return { schema, data };
+}
+
+/**
+ * 使用 schema 还原 data 为原始对象
+ */
+function decompressWithSchema(data, schema) {
+    if (schema === undefined) return data;
+    if (data == null) return null;
+
+    // schema 是 [innerSchema] → 还原为数组
+    if (Array.isArray(schema) && schema.length === 1 && Array.isArray(schema[0])) {
+        if (!Array.isArray(data)) return data;
+        const inner = schema[0];
+        return data.map(item => decompressWithSchema(item, inner));
+    }
+
+    // schema 是数组
+    if (Array.isArray(schema)) {
+        // schema 包含 undefined 元素 → 原始值数组，不压缩
+        if (schema.some(s => s === undefined || s === null)) return data;
+
+        // 原始值（混合数组中的原始元素）→ 直接返回
+        if (typeof data !== 'object' || data === null) return data;
+
+        // 对象 schema → 还原为对象
+        const obj = {};
+        for (let i = 0; i < schema.length; i++) {
+            const fieldDef = schema[i];
+            let key, valueSchema;
+            if (typeof fieldDef === 'string') {
+                key = fieldDef;
+                valueSchema = undefined;
+            } else if (typeof fieldDef === 'object' && fieldDef !== null) {
+                key = Object.keys(fieldDef)[0];
+                valueSchema = fieldDef[key];
+            } else {
+                continue;
+            }
+            const val = data[i];
+            if (val === undefined) { obj[key] = null; continue; }
+            obj[key] = decompressWithSchema(val, valueSchema);
+        }
+        return obj;
+    }
+
+    return data;
+}
+
+/**
+ * 从 { schema, data } 还原为原始值
+ * 如果输入不含 schema（直接值），原样返回
+ */
 function decompress(compressed) {
-  function buildFromRow(row, keys) {
-    const obj = {};
-    for (let i = 0; i < keys.length; i++) {
-      const key = keys[i];
-      const val = row[i];
-
-      if (typeof key === 'string') {
-        obj[key] = val === undefined ? null : val;
-
-      } else {
-        const [[keyName, childKeys]] = Object.entries(key);
-
-        if (val === null || val === undefined) {
-          // 字段缺失或为 null → 写入 null
-          obj[keyName] = null;
-
-        } else if (Array.isArray(val) && val.length > 0 && Array.isArray(val[0])) {
-          // 对象数组
-          obj[keyName] = val.map(r => buildFromRow(r, childKeys));
-
-        } else {
-          // 单个嵌套对象（或被 trim 的子 row）
-          obj[keyName] = buildFromRow(val, childKeys);
-        }
-      }
-    }
-    return obj;
-  }
-  return compressed.rows.map(row => buildFromRow(row, compressed.keys));
+    if (compressed === null || typeof compressed !== 'object' || Array.isArray(compressed)) return compressed;
+    if (!('data' in compressed)) return compressed;
+    return decompressWithSchema(compressed.data, compressed.schema);
 }
-
 /* ============================================================
    判断字符串是否可安全省略引号
    ============================================================ */
