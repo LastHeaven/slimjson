@@ -95,7 +95,14 @@ function buildKeys(sources) {
 /* ============================================================
    buildRow — 按 keys 结构将单个源对象转为 row
    ============================================================ */
-function buildRow(obj, keys) {
+function trimTrailingNulls(arr) {
+  let end = arr.length;
+  while (end > 0 && arr[end - 1] === null) end--;
+  if (end === arr.length) return arr;
+  return arr.slice(0, end);
+}
+
+function buildRow(obj, keys, trim) {
   const row = [];
   for (const key of keys) {
     if (typeof key === 'string') {
@@ -112,13 +119,18 @@ function buildRow(obj, keys) {
 
       } else if (Array.isArray(val)) {
         // 对象数组
-        row.push(val.map(item => buildRow(item, childKeys)));
+        const arr = val.map(item => buildRow(item, childKeys, trim));
+        row.push(trim ? arr.map(r => trimTrailingNulls(r)) : arr);
 
       } else {
         // 单个嵌套对象
-        row.push(buildRow(val, childKeys));
+        const sub = buildRow(val, childKeys, trim);
+        row.push(trim ? trimTrailingNulls(sub) : sub);
       }
     }
+  }
+  if (trim) {
+    return trimTrailingNulls(row);
   }
   return row;
 }
@@ -126,14 +138,15 @@ function buildRow(obj, keys) {
 /* ============================================================
    compress / decompress
    ============================================================ */
-function compress(source) {
+function compress(source, opts) {
   if (Object.prototype.toString.call(source) === '[object Object]') {
     source = [source]
   } else if (!Array.isArray(source) || source.length === 0) {
     return source;  // 不满足条件直接返回原值
   }
+  const trim = opts && opts.trimTrailingNulls;
   const keys = buildKeys(source);
-  const rows = source.map(obj => buildRow(obj, keys));
+  const rows = source.map(obj => buildRow(obj, keys, trim));
   return { keys, rows };
 }
 
@@ -145,21 +158,21 @@ function decompress(compressed) {
       const val = row[i];
 
       if (typeof key === 'string') {
-        obj[key] = val;
+        obj[key] = val === undefined ? null : val;
 
       } else {
         const [[keyName, childKeys]] = Object.entries(key);
 
         if (val === null || val === undefined) {
           // 字段缺失或为 null → 写入 null
-          obj[keyName] = val;
+          obj[keyName] = null;
 
         } else if (Array.isArray(val) && val.length > 0 && Array.isArray(val[0])) {
           // 对象数组
           obj[keyName] = val.map(r => buildFromRow(r, childKeys));
 
         } else {
-          // 单个嵌套对象（也可能是空数组 []，当作空对象处理）
+          // 单个嵌套对象（或被 trim 的子 row）
           obj[keyName] = buildFromRow(val, childKeys);
         }
       }

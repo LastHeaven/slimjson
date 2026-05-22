@@ -31,10 +31,6 @@ const src3 = [
   { "姓名": "张三", "年龄": 19, "家人": [{ "姓名": "张四", "年龄": 40 }] },
   { "姓名": "李小花", "年龄": 28, "家人": [{ "姓名": "李大国", "年龄": 55 }], "伴侣": { "姓名": "赵明", "年龄": 30 } }
 ];
-const src3Normalized = [  // 所有对象补齐缺失 key 为 null
-  { "姓名": "张三", "年龄": 19, "家人": [{ "姓名": "张四", "年龄": 40 }], "伴侣": null },
-  { "姓名": "李小花", "年龄": 28, "家人": [{ "姓名": "李大国", "年龄": 55 }], "伴侣": { "姓名": "赵明", "年龄": 30 } }
-];
 
 // 场景4：嵌套对象内部子 key 不全（第1个家人中缺少"关系"）
 const src4 = [
@@ -42,15 +38,6 @@ const src4 = [
     "姓名": "张三", "年龄": 19,
     "家人": [
       { "姓名": "张四", "年龄": 40 },
-      { "姓名": "李五", "年龄": 41, "关系": "母亲" }
-    ]
-  }
-];
-const src4Normalized = [
-  {
-    "姓名": "张三", "年龄": 19,
-    "家人": [
-      { "姓名": "张四", "年龄": 40, "关系": null },
       { "姓名": "李五", "年龄": 41, "关系": "母亲" }
     ]
   }
@@ -88,7 +75,23 @@ const src5 = [
   }
 ];
 
-const src5Normalized = [
+// decompress 始终返回规范化数据（补齐缺失 key 为 null）
+const src3Decompressed = [
+  { "姓名": "张三", "年龄": 19, "家人": [{ "姓名": "张四", "年龄": 40 }], "伴侣": null },
+  { "姓名": "李小花", "年龄": 28, "家人": [{ "姓名": "李大国", "年龄": 55 }], "伴侣": { "姓名": "赵明", "年龄": 30 } }
+];
+
+const src4Decompressed = [
+  {
+    "姓名": "张三", "年龄": 19,
+    "家人": [
+      { "姓名": "张四", "年龄": 40, "关系": null },
+      { "姓名": "李五", "年龄": 41, "关系": "母亲" }
+    ]
+  }
+];
+
+const src5Decompressed = [
   {
     "年级": "一年级",
     "班级": "1班",
@@ -125,322 +128,463 @@ const src5Normalized = [
 
 describe('compress / decompress', () => {
 
-  describe('样例1：基础嵌套', () => {
-    const r1 = compress(src1);
+  // —— compress / decompress / roundtrip 测试：trim=false 和 trim=true 两套 ——
+  [false, true].forEach(trim => {
+    const label = trim ? 'trimTrailingNulls' : '默认';
+    const copt = trim ? { trimTrailingNulls: true } : undefined;
 
-    test('compress 不出错', () => {
-      expect(r1.keys).toBeDefined();
-      expect(r1.rows).toBeDefined();
-    });
+    describe(`[${label}]`, () => {
 
-    test('与预期 keys 一致', () => {
-      expect(r1.keys).toEqual([
-        "姓名", "年龄", { "家人": ["姓名", "年龄"] }, { "伴侣": ["姓名", "年龄"] }
-      ]);
-    });
+      describe('样例1：基础嵌套', () => {
+        const r1 = compress(src1, copt);
 
-    test('还原一致', () => {
-      expect(decompress(r1)).toEqual(src1);
-    });
-  });
+        test('compress 不出错', () => {
+          expect(r1.keys).toBeDefined();
+          expect(r1.rows).toBeDefined();
+        });
 
-  describe('样例2：原始类型数组字段', () => {
-    const r2 = compress(src2);
+        test('与预期 keys 一致', () => {
+          expect(r1.keys).toEqual([
+            "姓名", "年龄", { "家人": ["姓名", "年龄"] }, { "伴侣": ["姓名", "年龄"] }
+          ]);
+        });
 
-    test('与预期 keys 一致', () => {
-      expect(r2.keys).toEqual(["姓名", "班级"]);
-    });
+        test('还原一致', () => {
+          expect(decompress(r1)).toEqual(src1);
+        });
+      });
 
-    test('与预期 rows 一致', () => {
-      expect(r2.rows).toEqual([
-        [["张三", "李四", "王五"], "23班"],
-        [["李小花", "张晓", "李旺", "张思"], "24班"]
-      ]);
-    });
+      describe('样例2：原始类型数组字段', () => {
+        const r2 = compress(src2, copt);
 
-    test('还原一致', () => {
-      expect(decompress(r2)).toEqual(src2);
-    });
-  });
+        test('与预期 keys 一致', () => {
+          expect(r2.keys).toEqual(["姓名", "班级"]);
+        });
 
-  describe('场景3：顶层缺失字段（后端省略 null）', () => {
-    const r3 = compress(src3);
+        test('与预期 rows 一致', () => {
+          expect(r2.rows).toEqual([
+            [["张三", "李四", "王五"], "23班"],
+            [["李小花", "张晓", "李旺", "张思"], "24班"]
+          ]);
+        });
 
-    test('keys 包含伴侣', () => {
-      expect(r3.keys).toEqual(["姓名", "年龄", { "家人": ["姓名", "年龄"] }, { "伴侣": ["姓名", "年龄"] }]);
-    });
+        test('还原一致', () => {
+          expect(decompress(r2)).toEqual(src2);
+        });
+      });
 
-    test('row[0] 伴侣位置为 null', () => {
-      expect(r3.rows[0][3]).toBeNull();
-    });
+      describe('场景3：顶层缺失字段（后端省略 null）', () => {
+        const r3 = compress(src3, copt);
 
-    test('row[1] 伴侣正常', () => {
-      expect(r3.rows[1][3]).toEqual(["赵明", 30]);
-    });
+        test('keys 包含伴侣', () => {
+          expect(r3.keys).toEqual(["姓名", "年龄", { "家人": ["姓名", "年龄"] }, { "伴侣": ["姓名", "年龄"] }]);
+        });
 
-    test('还原（null 补齐）', () => {
-      expect(decompress(r3)).toEqual(src3Normalized);
-    });
+        test(`row[0] 伴侣${trim ? '被 trim' : '为 null'}`, () => {
+          if (trim) {
+            expect(r3.rows[0].length).toBe(3);
+          } else {
+            expect(r3.rows[0][3]).toBeNull();
+          }
+        });
 
-    test('张三的伴侣为 null', () => {
-      expect(decompress(r3)[0].伴侣).toBeNull();
-    });
+        test('row[1] 伴侣正常', () => {
+          expect(r3.rows[1][3]).toEqual(["赵明", 30]);
+        });
 
-    test('李小花的伴侣正常', () => {
-      expect(decompress(r3)[1].伴侣.姓名).toBe("赵明");
-    });
-  });
+        test('还原（null 补齐）', () => {
+          expect(decompress(r3)).toEqual(src3Decompressed);
+        });
 
-  describe('场景4：嵌套对象子 key 不全', () => {
-    const r4 = compress(src4);
+        test('张三的伴侣为 null', () => {
+          expect(decompress(r3)[0].伴侣).toBeNull();
+        });
 
-    test('keys 中家人包含"关系"', () => {
-      expect(r4.keys).toEqual(["姓名", "年龄", { "家人": ["姓名", "年龄", "关系"] }]);
-    });
+        test('李小花的伴侣正常', () => {
+          expect(decompress(r3)[1].伴侣.姓名).toBe("赵明");
+        });
+      });
 
-    test('家人[0] 关系为 null', () => {
-      expect(r4.rows[0][2][0][2]).toBeNull();
-    });
+      describe('场景4：嵌套对象子 key 不全', () => {
+        const r4 = compress(src4, copt);
 
-    test('家人[1] 关系正常', () => {
-      expect(r4.rows[0][2][1][2]).toBe("母亲");
-    });
+        test('keys 中家人包含"关系"', () => {
+          expect(r4.keys).toEqual(["姓名", "年龄", { "家人": ["姓名", "年龄", "关系"] }]);
+        });
 
-    test('还原（null 补齐）', () => {
-      expect(decompress(r4)).toEqual(src4Normalized);
-    });
+        test(`家人[0] 关系${trim ? '被 trim' : '为 null'}`, () => {
+          if (trim) {
+            expect(r4.rows[0][2][0].length).toBe(2);
+          } else {
+            expect(r4.rows[0][2][0][2]).toBeNull();
+          }
+        });
 
-    test('第1个家人关系为 null', () => {
-      expect(decompress(r4)[0].家人[0].关系).toBeNull();
-    });
+        test('家人[1] 关系正常', () => {
+          expect(r4.rows[0][2][1][2]).toBe("母亲");
+        });
 
-    test('第2个家人关系正常', () => {
-      expect(decompress(r4)[0].家人[1].关系).toBe("母亲");
-    });
-  });
+        test('还原（null 补齐）', () => {
+          expect(decompress(r4)).toEqual(src4Decompressed);
+        });
 
-  describe('场景5：复杂嵌套（年级/班级/班主任/其他老师/学生+成绩）', () => {
-    const r5 = compress(src5);
+        test('第1个家人关系为 null', () => {
+          expect(decompress(r4)[0].家人[0].关系).toBeNull();
+        });
 
-    // —— keys ——
-    test('keys 顶层包含年级/班级', () => {
-      expect(r5.keys.slice(0, 2)).toEqual(["年级", "班级"]);
-    });
+        test('第2个家人关系正常', () => {
+          expect(decompress(r4)[0].家人[1].关系).toBe("母亲");
+        });
+      });
 
-    test('keys 包含嵌套班主任', () => {
-      expect(JSON.stringify(r5.keys[2])).toContain('班主任');
-    });
+      describe('场景5：复杂嵌套（年级/班级/班主任/其他老师/学生+成绩）', () => {
+        const r5 = compress(src5, copt);
 
-    test('keys 包含嵌套其他老师', () => {
-      expect(JSON.stringify(r5.keys[3])).toContain('其他老师');
-    });
+        // —— keys ——
+        test('keys 顶层包含年级/班级', () => {
+          expect(r5.keys.slice(0, 2)).toEqual(["年级", "班级"]);
+        });
 
-    test('keys 包含嵌套学生', () => {
-      expect(JSON.stringify(r5.keys[4])).toContain('学生');
-    });
+        test('keys 包含嵌套班主任', () => {
+          expect(JSON.stringify(r5.keys[2])).toContain('班主任');
+        });
 
-    test('keys 完整结构', () => {
-      expect(r5.keys).toEqual([
-        "年级",
-        "班级",
-        { "班主任": ["姓名", "年龄", "科目"] },
-        { "其他老师": ["姓名", "年龄", "科目"] },
-        { "学生": ["姓名", "年龄", "性别", { "成绩": ["语文", "数学", "英语"] }] }
-      ]);
-    });
+        test('keys 包含嵌套其他老师', () => {
+          expect(JSON.stringify(r5.keys[3])).toContain('其他老师');
+        });
 
-    // —— rows 数量 ——
-    test('1班班主任正常', () => {
-      expect(r5.rows[0][2]).toEqual(["王老师", 35, "语文"]);
-    });
+        test('keys 包含嵌套学生', () => {
+          expect(JSON.stringify(r5.keys[4])).toContain('学生');
+        });
 
-    test('1班其他老师数量=2', () => {
-      expect(r5.rows[0][3].length).toBe(2);
-    });
+        test('keys 完整结构', () => {
+          expect(r5.keys).toEqual([
+            "年级",
+            "班级",
+            { "班主任": ["姓名", "年龄", "科目"] },
+            { "其他老师": ["姓名", "年龄", "科目"] },
+            { "学生": ["姓名", "年龄", "性别", { "成绩": ["语文", "数学", "英语"] }] }
+          ]);
+        });
 
-    test('1班学生数量=2', () => {
-      expect(r5.rows[0][4].length).toBe(2);
-    });
+        // —— rows 数量 ——
+        test('1班班主任正常', () => {
+          expect(r5.rows[0][2]).toEqual(["王老师", 35, "语文"]);
+        });
 
-    test('2班班主任正常', () => {
-      expect(r5.rows[1][2]).toEqual(["赵老师", 42, "数学"]);
-    });
+        test('1班其他老师数量=2', () => {
+          expect(r5.rows[0][3].length).toBe(2);
+        });
 
-    test('2班其他老师数量=3', () => {
-      expect(r5.rows[1][3].length).toBe(3);
-    });
+        test('1班学生数量=2', () => {
+          expect(r5.rows[0][4].length).toBe(2);
+        });
 
-    test('2班学生数量=3', () => {
-      expect(r5.rows[1][4].length).toBe(3);
-    });
+        test('2班班主任正常', () => {
+          expect(r5.rows[1][2]).toEqual(["赵老师", 42, "数学"]);
+        });
 
-    // —— 成绩子对象缺失 key 补 null ——
-    // 学生 keys: ["姓名", "年龄", "性别", { "成绩": ["语文", "数学", "英语"] }]
-    // 学生 row:  [姓名, 年龄, 性别, [语文, 数学, 英语]]
-    test('小刚英语成绩为 null（缺英语字段）', () => {
-      expect(r5.rows[1][4][0][3][2]).toBeNull();
-    });
+        test('2班其他老师数量=3', () => {
+          expect(r5.rows[1][3].length).toBe(3);
+        });
 
-    test('小刚语文成绩正常', () => {
-      expect(r5.rows[1][4][0][3][0]).toBe(78);
-    });
+        test('2班学生数量=3', () => {
+          expect(r5.rows[1][4].length).toBe(3);
+        });
 
-    test('小强语文成绩为 null（缺语文字段）', () => {
-      expect(r5.rows[1][4][2][3][0]).toBeNull();
-    });
+        // —— 成绩子对象缺失 key 补 null ——
+        test('小刚英语成绩为 null（缺英语字段）', () => {
+          expect(decompress(r5)[1]["学生"][0]["成绩"]["英语"]).toBeNull();
+        });
 
-    test('小强数学成绩正常', () => {
-      expect(r5.rows[1][4][2][3][1]).toBe(60);
-    });
+        test('小刚语文成绩正常', () => {
+          expect(r5.rows[1][4][0][3][0]).toBe(78);
+        });
 
-    test('小强英语成绩为 null（缺英语字段）', () => {
-      expect(r5.rows[1][4][2][3][2]).toBeNull();
-    });
+        test('小强语文成绩为 null（缺语文字段）', () => {
+          expect(decompress(r5)[1]["学生"][2]["成绩"]["语文"]).toBeNull();
+        });
 
-    // —— 还原验证 ——
-    test('还原后与 normalized 一致', () => {
-      expect(decompress(r5)).toEqual(src5Normalized);
-    });
+        test('小强数学成绩正常', () => {
+          const scores = r5.rows[1][4][2][3];
+          // trim=true  → [null, 60]，数学在 index 1
+          // trim=false → [null, 60, null]，数学在 index 1
+          expect(scores[1]).toBe(60);
+        });
 
-    test('1班年级正确', () => {
-      expect(decompress(r5)[0]["年级"]).toBe("一年级");
-    });
+        test('小强英语成绩为 null（缺英语字段）', () => {
+          expect(decompress(r5)[1]["学生"][2]["成绩"]["英语"]).toBeNull();
+        });
 
-    test('2班第1个学生英语为 null', () => {
-      expect(decompress(r5)[1]["学生"][0]["成绩"]["英语"]).toBeNull();
-    });
+        // —— 还原验证 ——
+        test('还原后与 decompressed 一致', () => {
+          expect(decompress(r5)).toEqual(src5Decompressed);
+        });
 
-    test('2班第3个学生语文为 null', () => {
-      expect(decompress(r5)[1]["学生"][2]["成绩"]["语文"]).toBeNull();
-    });
-  });
+        test('1班年级正确', () => {
+          expect(decompress(r5)[0]["年级"]).toBe("一年级");
+        });
 
-  /* =========================================================
-     边界 / 异常 — 冲击 100% 覆盖率
-     ========================================================= */
-  describe('边界 / 异常', () => {
+        test('2班第1个学生英语为 null', () => {
+          expect(decompress(r5)[1]["学生"][0]["成绩"]["英语"]).toBeNull();
+        });
 
-    test('compress 空数组 → 返回原值', () => {
-      expect(compress([])).toEqual([]);
-    });
+        test('2班第3个学生语文为 null', () => {
+          expect(decompress(r5)[1]["学生"][2]["成绩"]["语文"]).toBeNull();
+        });
+      });
 
-    test('compress(null) → 返回原值', () => {
-      expect(compress(null)).toBeNull();
-    });
+      /* =========================================================
+         边界 / 异常
+         ========================================================= */
+      describe('边界 / 异常', () => {
 
-    test('compress 非数组 → 返回原值', () => {
-      expect(compress('hello')).toBe('hello');
-    });
+        test('compress 空数组 → 返回原值', () => {
+          expect(compress([], copt)).toEqual([]);
+        });
 
-    test('源数组含 null 元素', () => {
-      const src = [{ name: 'a', age: 10 }, null, { name: 'b' }];
-      const r = compress(src);
-      expect(r.keys).toEqual(['name', 'age']);
-      expect(r.rows[1]).toEqual([null, null]);
-      expect(r.rows[0]).toEqual(['a', 10]);
-      expect(r.rows[2]).toEqual(['b', null]);
-    });
+        test('compress(null) → 返回原值', () => {
+          expect(compress(null, copt)).toBeNull();
+        });
 
-    test('空对象数组字段', () => {
-      const src = [{ name: 'test', items: [] }];
-      const r = compress(src);
-      expect(r.keys).toEqual(['name', 'items']);
-      expect(r.rows[0]).toEqual(['test', []]);
-      expect(decompress(r)).toEqual(src);
-    });
+        test('compress 单个对象 → 自动包裹为数组', () => {
+          const obj = { name: '张三', age: 25 };
+          const r = compress(obj, copt);
+          expect(r.keys).toEqual(['name', 'age']);
+          expect(r.rows).toEqual([['张三', 25]]);
+          expect(decompress(r)).toEqual([obj]);
+        });
 
-    test('嵌套对象数组中含 null 元素（首元 null→退化为 primitive-array）', () => {
-      const src = [{ name: 'a', kids: [null, { name: 'child' }] }];
-      const r = compress(src);
-      // v[0]===null → 走 primitive-array 分支，不拆解子 key
-      expect(r.keys).toEqual(['name', 'kids']);
-      expect(r.rows[0]).toEqual(['a', [null, { name: 'child' }]]);
-      expect(decompress(r)).toEqual(src);
-    });
+        test('compress 非数组 → 返回原值', () => {
+          expect(compress('hello', copt)).toBe('hello');
+        });
 
-    test('字段值为 undefined 转 null', () => {
-      const src = [{ a: undefined, b: 1 }];
-      const r = compress(src);
-      expect(r.keys).toEqual(['a', 'b']);
-      expect(r.rows[0]).toEqual([null, 1]);
-    });
+        test('源数组含 null 元素', () => {
+          const src = [{ name: 'a', age: 10 }, null, { name: 'b' }];
+          const r = compress(src, copt);
+          expect(r.keys).toEqual(['name', 'age']);
+          expect(r.rows[0]).toEqual(['a', 10]);
+          expect(r.rows[2]).toEqual(trim ? ['b'] : ['b', null]);
+          // null 元素行: [null, null] → trim 后 []，不 trim 仍是 [null, null]
+          if (trim) {
+            expect(r.rows[1]).toEqual([]);
+          } else {
+            expect(r.rows[1]).toEqual([null, null]);
+          }
+          expect(decompress(r)).toEqual([
+            { name: 'a', age: 10 },
+            { name: null, age: null },
+            { name: 'b', age: null }
+          ]);
+        });
 
-    test('字段值为 null 保留 null', () => {
-      const src = [{ a: 1, b: null }];
-      const r = compress(src);
-      expect(r.rows[0][1]).toBeNull();
-      expect(decompress(r)[0].b).toBeNull();
-    });
+        test('空对象数组字段', () => {
+          const src = [{ name: 'test', items: [] }];
+          const r = compress(src, copt);
+          expect(r.keys).toEqual(['name', 'items']);
+          expect(r.rows[0]).toEqual(['test', []]);
+          expect(decompress(r)).toEqual(src);
+        });
 
-    test('对象数组中含非对象元素（item typeof!=="object" 分支）', () => {
-      const src = [{ name: 'x', kids: [{ name: 'kid' }, 'string', null] }];
-      const r = compress(src);
-      // 首元素是对象 → object-array；非对象元素在 buildKeys 收集时被跳过
-      expect(r.keys).toEqual(['name', { kids: ['name'] }]);
-      // 非对象元素 → buildRow 返回 [null]，所以 null 元素也是 [null] 而非 null
-      expect(r.rows[0][1]).toEqual([['kid'], [null], [null]]);
-    });
+        test('嵌套对象数组中含 null 元素（首元 null→退化为 primitive-array）', () => {
+          const src = [{ name: 'a', kids: [null, { name: 'child' }] }];
+          const r = compress(src, copt);
+          // v[0]===null → 走 primitive-array 分支，不拆解子 key
+          expect(r.keys).toEqual(['name', 'kids']);
+          expect(r.rows[0]).toEqual(['a', [null, { name: 'child' }]]);
+          expect(decompress(r)).toEqual(src);
+        });
 
-test('原数组含数字元素（typeof obj!=="object" 各分支）', () => {
-      const src = [42, { name: 'a' }, true, { name: 'b' }];
-      const r = compress(src);
-      expect(r.keys).toEqual(['name']);
-      // 数字/布尔不是对象 → buildRow 返回 [null]
-      expect(r.rows[0]).toEqual([null]);
-      expect(r.rows[1]).toEqual(['a']);
-      expect(r.rows[2]).toEqual([null]);
-      expect(r.rows[3]).toEqual(['b']);
-    });
+        test('字段值为 undefined 转 null', () => {
+          const src = [{ a: undefined, b: 1 }];
+          const r = compress(src, copt);
+          expect(r.keys).toEqual(['a', 'b']);
+          if (trim) {
+            expect(r.rows[0]).toEqual([null, 1]); // a 的 null 被 trim
+          } else {
+            expect(r.rows[0]).toEqual([null, 1]);
+          }
+        });
 
-    test('getValueKind：数组首元素也是数组 → primitive-array', () => {
-      const src = [{ name: 'x', matrix: [[1, 2], [3, 4]] }];
-      const r = compress(src);
-      expect(r.keys).toEqual(['name', 'matrix']);
-      expect(r.rows[0]).toEqual(['x', [[1, 2], [3, 4]]]);
-      expect(decompress(r)).toEqual(src);
-    });
+        test('字段值为 null 在 decompress 中还原', () => {
+          const src = [{ a: 1, b: null }];
+          const r = compress(src, copt);
+          expect(decompress(r)[0].b).toBeNull();
+          if (trim) {
+            expect(r.rows[0]).toEqual([1]); // b 的 null 被 trim
+          } else {
+            expect(r.rows[0]).toEqual([1, null]);
+          }
+        });
 
-    test('普通原始类型数组 [1,2,3] 不拆解', () => {
-      const src = [{ name: 'x', scores: [1, 2, 3] }];
-      const r = compress(src);
-      expect(r.keys).toEqual(['name', 'scores']);
-      expect(r.rows[0]).toEqual(['x', [1, 2, 3]]);
-      expect(decompress(r)).toEqual(src);
-    });
+        test('对象数组中含非对象元素（item typeof!=="object" 分支）', () => {
+          const src = [{ name: 'x', kids: [{ name: 'kid' }, 'string', null] }];
+          const r = compress(src, copt);
+          // 首元素是对象 → object-array；非对象元素在 buildKeys 收集时被跳过
+          expect(r.keys).toEqual(['name', { kids: ['name'] }]);
+          // 非对象元素 → buildRow 返回 [null]
+          // trim 后 [null]→[]，不 trim 保持 [null]
+          const nonObj = trim ? [] : [null];
+          expect(r.rows[0][1]).toEqual([['kid'], nonObj, nonObj]);
+        });
 
-    test('非对象元素 + 嵌套 key（buildRow line 108 三元 false 分支）', () => {
-      const src = [42, { name: 'a', detail: { x: 1 } }];
-      const r = compress(src);
-      expect(r.keys).toEqual(['name', { detail: ['x'] }]);
-      // 42 不是对象 → 所有 key（包括嵌套）都取 undefined → null
-      expect(r.rows[0]).toEqual([null, null]);
-      expect(r.rows[1]).toEqual(['a', [1]]);
-    });
+        test('原数组含数字元素（typeof obj!=="object" 各分支）', () => {
+          const src = [42, { name: 'a' }, true, { name: 'b' }];
+          const r = compress(src, copt);
+          expect(r.keys).toEqual(['name']);
+          // 数字/布尔不是对象 → buildRow 返回 [null]
+          const nonObj = trim ? [] : [null];
+          expect(r.rows[0]).toEqual(nonObj);
+          expect(r.rows[1]).toEqual(['a']);
+          expect(r.rows[2]).toEqual(nonObj);
+          expect(r.rows[3]).toEqual(['b']);
+        });
 
-    test('非对象元素 + 对象数组（buildKeys line 73 typeof false 分支）', () => {
-      const src = [42, { items: [{ name: 'a' }] }];
-      const r = compress(src);
-      expect(r.keys).toEqual([{ items: ['name'] }]);
-      // 42 不是对象 → buildRow 返回 [null]
-      expect(r.rows[0]).toEqual([null]);
-      expect(r.rows[1]).toEqual([[['a']]]);
-    });
+        test('getValueKind：数组首元素也是数组 → primitive-array', () => {
+          const src = [{ name: 'x', matrix: [[1, 2], [3, 4]] }];
+          const r = compress(src, copt);
+          expect(r.keys).toEqual(['name', 'matrix']);
+          expect(r.rows[0]).toEqual(['x', [[1, 2], [3, 4]]]);
+          expect(decompress(r)).toEqual(src);
+        });
 
-    test('字段值为 null 且 repValue 为 object-array（line 75 Array.isArray false 分支）', () => {
-      const src = [
-        { items: [{ name: 'a' }] },   // items 是 object-array
-        { items: null }                // items 为 null → !Array.isArray
-      ];
-      const r = compress(src);
-      expect(r.keys).toEqual([{ items: ['name'] }]);
-      expect(r.rows[0]).toEqual([[['a']]]);
-      expect(r.rows[1]).toEqual([null]);
-    });
+        test('普通原始类型数组 [1,2,3] 不拆解', () => {
+          const src = [{ name: 'x', scores: [1, 2, 3] }];
+          const r = compress(src, copt);
+          expect(r.keys).toEqual(['name', 'scores']);
+          expect(r.rows[0]).toEqual(['x', [1, 2, 3]]);
+          expect(decompress(r)).toEqual(src);
+        });
 
-  });
+        test('非对象元素 + 嵌套 key（buildRow line 108 三元 false 分支）', () => {
+          const src = [42, { name: 'a', detail: { x: 1 } }];
+          const r = compress(src, copt);
+          expect(r.keys).toEqual(['name', { detail: ['x'] }]);
+          // 42 不是对象 → 全 null
+          expect(r.rows[0]).toEqual(trim ? [] : [null, null]);
+          expect(r.rows[1]).toEqual(['a', [1]]);
+        });
+
+        test('非对象元素 + 对象数组（buildKeys line 73 typeof false 分支）', () => {
+          const src = [42, { items: [{ name: 'a' }] }];
+          const r = compress(src, copt);
+          expect(r.keys).toEqual([{ items: ['name'] }]);
+          // 42 不是对象 → buildRow 返回 [null]
+          expect(r.rows[0]).toEqual(trim ? [] : [null]);
+          expect(r.rows[1]).toEqual([[['a']]]);
+        });
+
+        test('字段值为 null 且 repValue 为 object-array（line 75 Array.isArray false 分支）', () => {
+          const src = [
+            { items: [{ name: 'a' }] },   // items 是 object-array
+            { items: null }                // items 为 null → !Array.isArray
+          ];
+          const r = compress(src, copt);
+          expect(r.keys).toEqual([{ items: ['name'] }]);
+          expect(r.rows[0]).toEqual([[['a']]]);
+          expect(r.rows[1]).toEqual(trim ? [] : [null]);
+        });
+
+        test('trimTrailingNulls 端到端', () => {
+          const src = [
+            { name: '张三', age: 28, profile: { avatar: 'a.jpg', bio: 'Hello' } },
+            { name: '李四', age: 35, profile: { avatar: 'b.jpg', file: null } },
+            { name: '王五' },
+          ];
+          const r = compress(src, copt);
+          if (trim) {
+            expect(r.rows[0]).toEqual(['张三', 28, ['a.jpg', 'Hello']]);
+            expect(r.rows[1]).toEqual(['李四', 35, ['b.jpg']]);
+            expect(r.rows[2]).toEqual(['王五']);
+          } else {
+            expect(r.rows[0]).toEqual(['张三', 28, ['a.jpg', 'Hello', null]]);
+            expect(r.rows[1]).toEqual(['李四', 35, ['b.jpg', null, null]]);
+            expect(r.rows[2]).toEqual(['王五', null, null]);
+          }
+          expect(decompress(r)).toEqual([
+            { name: '张三', age: 28, profile: { avatar: 'a.jpg', bio: 'Hello', file: null } },
+            { name: '李四', age: 35, profile: { avatar: 'b.jpg', bio: null, file: null } },
+            { name: '王五', age: null, profile: null },
+          ]);
+        });
+
+      });
+
+      /* =========================================================
+         stringify / parse 联用 roundtrip
+         ========================================================= */
+      describe('stringify / parse 联用 roundtrip', () => {
+        test('样例1 往返：compress → stringify → parse → decompress', () => {
+          const cmp = compress(src1, copt);
+          const str = stringify(cmp);
+          const restored = parse(str);
+          expect(restored).toEqual(cmp);
+          expect(decompress(restored)).toEqual(src1);
+        });
+
+        test('样例2 往返', () => {
+          const cmp = compress(src2, copt);
+          const str = stringify(cmp);
+          const restored = parse(str);
+          expect(restored).toEqual(cmp);
+          expect(decompress(restored)).toEqual(src2);
+        });
+
+        test('场景3（缺失字段→null）往返', () => {
+          const cmp = compress(src3, copt);
+          const str = stringify(cmp);
+          const restored = parse(str);
+          expect(restored).toEqual(cmp);
+          expect(decompress(restored)).toEqual(src3Decompressed);
+        });
+
+        test('场景4（嵌套子 key 不全）往返', () => {
+          const cmp = compress(src4, copt);
+          const str = stringify(cmp);
+          const restored = parse(str);
+          expect(restored).toEqual(cmp);
+          expect(decompress(restored)).toEqual(src4Decompressed);
+        });
+
+        test('场景5（复杂嵌套+缺失成绩）往返', () => {
+          const cmp = compress(src5, copt);
+          const str = stringify(cmp);
+          const restored = parse(str);
+          expect(restored).toEqual(cmp);
+          expect(decompress(restored)).toEqual(src5Decompressed);
+        });
+
+        test('trim 对 rows 长度的影响', () => {
+          const src = [
+            { name: 'a', extra: null },
+            { name: 'b', extra: null }
+          ];
+          const cmp = compress(src, copt);
+          // trim=true: 尾部 null 被移除，每行长度=1
+          // trim=false: 尾部 null 保留，每行长度=2
+          if (trim) {
+            expect(cmp.rows[0].length).toBe(1);
+            expect(cmp.rows[1].length).toBe(1);
+          } else {
+            expect(cmp.rows[0].length).toBe(2);
+            expect(cmp.rows[1].length).toBe(2);
+          }
+          // stringify 往返正确
+          const str = stringify(cmp);
+          expect(parse(str)).toEqual(cmp);
+          expect(decompress(parse(str))).toEqual([
+            { name: 'a', extra: null },
+            { name: 'b', extra: null }
+          ]);
+        });
+      });
+
+    }); // end [label] describe
+  }); // end forEach
 
   /* =========================================================
      stringify / parse — 省略 null 文本化 与 还原
+     （以下测试不依赖 compress，不需要按 trim 分组）
      ========================================================= */
   describe('stringify / parse', () => {
 
@@ -562,59 +706,25 @@ test('原数组含数字元素（typeof obj!=="object" 各分支）', () => {
       });
     });
 
-    // ---- 与 compress/decompress 联用 ----
+    // ---- 与 compress/decompress 联用（纯 stringify/parse，不按 trim 分组）----
     describe('与 compress/decompress 联用', () => {
-      test('样例1 往返：compress → stringify → parse → decompress', () => {
-        const cmp = compress(src1);
-        const str = stringify(cmp);
-        const restored = parse(str);
-        expect(restored).toEqual(cmp);
-        expect(decompress(restored)).toEqual(src1);
-      });
-
-      test('样例2 往返', () => {
-        const cmp = compress(src2);
-        const str = stringify(cmp);
-        const restored = parse(str);
-        expect(restored).toEqual(cmp);
-        expect(decompress(restored)).toEqual(src2);
-      });
-
-      test('场景3（缺失字段→null）往返', () => {
-        const cmp = compress(src3);
-        const str = stringify(cmp);
-        const restored = parse(str);
-        expect(restored).toEqual(cmp);
-        expect(decompress(restored)).toEqual(src3Normalized);
-      });
-
-      test('场景4（嵌套子 key 不全）往返', () => {
-        const cmp = compress(src4);
-        const str = stringify(cmp);
-        const restored = parse(str);
-        expect(restored).toEqual(cmp);
-        expect(decompress(restored)).toEqual(src4Normalized);
-      });
-
-      test('场景5（复杂嵌套+缺失成绩）往返', () => {
-        const cmp = compress(src5);
-        const str = stringify(cmp);
-        const restored = parse(str);
-        expect(restored).toEqual(cmp);
-        expect(decompress(restored)).toEqual(src5Normalized);
-      });
-
-      test('stringify 输出不含 null 关键字的实例（验证省略效果）', () => {
-        // 构造一个有大量 null 的压缩结构，验证文本化后不含 "null"
-        const src = [
-          { name: 'a', extra: null },
-          { name: 'b', extra: null }
+      test('compress → stringify → parse → decompress（顶层缺失字段）', () => {
+        const data = [
+          { name: '张三', age: 25, city: '北京' },
+          { name: '李四', age: 30 }
         ];
-        const cmp = compress(src);
-        const str = stringify(cmp);
-        // rows 中的 null 应该被省略
-        // rows: [["a",null],["b",null]] → [["a",],["b",]]
-        expect(str).not.toContain('null');
+        const expected = [
+          { name: '张三', age: 25, city: '北京' },
+          { name: '李四', age: 30, city: null }
+        ];
+        const compressed = compress(data);
+        const text = stringify(compressed);
+        const parsed = parse(text);
+        expect(decompress(parsed)).toEqual(expected);
+      });
+
+      test('含空格字符串保留引号', () => {
+        expect(stringify(['hello world'])).toBe('["hello world"]');
       });
     });
 
@@ -808,27 +918,6 @@ test('原数组含数字元素（typeof obj!=="object" 各分支）', () => {
       test('不安全值保留引号、安全 key 省略', () => {
         expect(stringify({ name: 'hello world' }))
           .toBe('{name:"hello world"}');
-      });
-    });
-
-    describe('与 compress/decompress 联用', () => {
-      test('compress → stringify → parse → decompress', () => {
-        const data = [
-          { name: '张三', age: 25, city: '北京' },
-          { name: '李四', age: 30 }
-        ];
-        const expected = [
-          { name: '张三', age: 25, city: '北京' },
-          { name: '李四', age: 30, city: null }
-        ];
-        const compressed = compress(data);
-        const text = stringify(compressed);
-        const parsed = parse(text);
-        expect(decompress(parsed)).toEqual(expected);
-      });
-
-      test('含空格字符串保留引号', () => {
-        expect(stringify(['hello world'])).toBe('["hello world"]');
       });
     });
 

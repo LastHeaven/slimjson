@@ -294,31 +294,39 @@ function generateDeepNested(orgCount = 2, deptPerOrg = 3, teamPerDept = 4, membe
  * - compress → decompress → compress 应该得到相同结果（roundtrip）
  * - 缺失字段会被填充为 null，这是预期的规范化行为
  */
-function verifyRoundtrip(original, compressed) {
+function verifyRoundtrip(original, compressed, opts) {
   const decompressed = decompress(compressed);
-  const recompressed = compress(decompressed);
+  const recompressed = compress(decompressed, opts);
   // 二次压缩后结构应该完全一致
   return JSON.stringify(compressed) === JSON.stringify(recompressed);
 }
 
 function runTest(name, data) {
   const originalSize = getByteSize(data);
+
+  // 默认（不 trim）
   const compressed = compress(data);
   const compressedSize = Buffer.byteLength(stringify(compressed), 'utf8');
-
-  // 验证解压正确性（roundtrip: compress→decompress→compress 结果一致）
   const isCorrect = verifyRoundtrip(data, compressed);
-
   const ratio = ((originalSize - compressedSize) / originalSize * 100).toFixed(2);
-  const savings = originalSize - compressedSize;
 
-  console.log(`\n${'='.repeat(60)}`);
+  // trimTrailingNulls
+  const compressedTrim = compress(data, { trimTrailingNulls: true });
+  const compressedTrimSize = Buffer.byteLength(stringify(compressedTrim), 'utf8');
+  const isCorrectTrim = verifyRoundtrip(data, compressedTrim, { trimTrailingNulls: true });
+  const ratioTrim = ((originalSize - compressedTrimSize) / originalSize * 100).toFixed(2);
+
+  const diff = compressedSize - compressedTrimSize;
+  const diffStr = diff > 0 ? `-${formatBytes(diff)}` : diff === 0 ? '—' : `+${formatBytes(-diff)}`;
+
+  console.log(`\n${'='.repeat(72)}`);
   console.log(`测试: ${name}`);
-  console.log('-'.repeat(60));
+  console.log('-'.repeat(72));
   console.log(`对象数量:        ${data.length}`);
   console.log(`原始大小:        ${formatBytes(originalSize)}`);
-  console.log(`压缩后:          ${formatBytes(compressedSize)} (${ratio}%)`);
-  console.log(`解压正确:        ${isCorrect ? '✓' : '✗'}`);
+  console.log(`不 trim:         ${formatBytes(compressedSize).padStart(10)}  (${ratio}%)  ${isCorrect ? '✓' : '✗'}`);
+  console.log(`trim:            ${formatBytes(compressedTrimSize).padStart(10)}  (${ratioTrim}%)  ${isCorrectTrim ? '✓' : '✗'}`);
+  console.log(`差值:            ${diffStr}`);
 
   return {
     name,
@@ -326,6 +334,9 @@ function runTest(name, data) {
     originalSize,
     compressedSize,
     ratio: parseFloat(ratio),
+    compressedTrimSize,
+    ratioTrim: parseFloat(ratioTrim),
+    diff,
     isCorrect
   };
 }
@@ -375,26 +386,41 @@ function main() {
 
   // 汇总
   console.log('\n\n');
-  console.log('╔══════════════════════════════════════════════════════════╗');
-  console.log('║                      测试结果汇总                          ║');
-  console.log('╚══════════════════════════════════════════════════════════╝');
+  console.log('╔══════════════════════════════════════════════════════════════════════════╗');
+  console.log('║                           测试结果汇总                                      ║');
+  console.log('╚══════════════════════════════════════════════════════════════════════════╝');
   console.log('\n');
-  
+
   const avgRatio = results.reduce((sum, r) => sum + r.ratio, 0) / results.length;
-  const bestCase = results.reduce((best, r) => r.ratio > best.ratio ? r : best);
-  const worstCase = results.reduce((worst, r) => r.ratio < worst.ratio ? r : worst);
-  
+  const avgRatioTrim = results.reduce((sum, r) => sum + r.ratioTrim, 0) / results.length;
+  const totalDiff = results.reduce((sum, r) => sum + r.diff, 0);
+  const bestCase = results.reduce((best, r) => r.ratioTrim > best.ratioTrim ? r : best);
+  const worstCase = results.reduce((worst, r) => r.ratioTrim < worst.ratioTrim ? r : worst);
+
   console.log(`总测试数: ${results.length}`);
-  console.log(`平均压缩率: ${avgRatio.toFixed(2)}%`);
-  console.log(`最佳压缩: ${bestCase.name} (${bestCase.ratio}%)`);
-  console.log(`最差压缩: ${worstCase.name} (${worstCase.ratio}%)`);
-  
+  console.log(`平均压缩率（不 trim）: ${avgRatio.toFixed(2)}%`);
+  console.log(`平均压缩率（trim）:    ${avgRatioTrim.toFixed(2)}%`);
+  console.log(`总节省:               ${formatBytes(totalDiff)}`);
+  console.log(`最佳压缩: ${bestCase.name} (trim ${bestCase.ratioTrim}%)`);
+  console.log(`最差压缩: ${worstCase.name} (trim ${worstCase.ratioTrim}%)`);
+
   console.log('\n详细结果:');
-  console.log('-'.repeat(70));
-  console.log(`${'测试名称'.padEnd(38)} ${'数量'.padStart(8)} ${'原始'.padStart(12)} ${'压缩后'.padStart(12)} ${'压缩率'.padStart(8)}`);
-  console.log('-'.repeat(70));
+  console.log('-'.repeat(100));
+  console.log(
+    `${'测试名称'.padEnd(34)} ${'数量'.padStart(6)}` +
+    `${'原始'.padStart(12)} ${'不 trim'.padStart(12)} ${'压缩率'.padStart(7)}` +
+    `${'trim'.padStart(12)} ${'压缩率'.padStart(7)} ${'差值'.padStart(12)}`
+  );
+  console.log('-'.repeat(100));
   for (const r of results) {
-    console.log(`${r.name.padEnd(38)} ${r.count.toString().padStart(8)} ${formatBytes(r.originalSize).padStart(12)} ${formatBytes(r.compressedSize).padStart(12)} ${r.ratio.toString().padStart(7)}%`);
+    const diffStr = r.diff > 0 ? `-${formatBytes(r.diff)}` : r.diff === 0 ? '—' : `+${formatBytes(-r.diff)}`;
+    console.log(
+      `${r.name.padEnd(34)} ${r.count.toString().padStart(6)}` +
+      `${formatBytes(r.originalSize).padStart(12)}` +
+      `${formatBytes(r.compressedSize).padStart(12)} ${r.ratio.toString().padStart(6)}%` +
+      `${formatBytes(r.compressedTrimSize).padStart(12)} ${r.ratioTrim.toString().padStart(6)}%` +
+      `${diffStr.padStart(12)}`
+    );
   }
   
   console.log('\n结论:');

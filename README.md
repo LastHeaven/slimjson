@@ -21,7 +21,7 @@ npm install slimjson
 
 ## API
 
-### `compress(source)`
+### `compress(source, opts?)`
 
 将对象数组压缩为 `{ keys, rows }` 结构：
 
@@ -43,6 +43,14 @@ const compressed = compress(users);
 // }
 ```
 
+**参数：**
+
+| 参数 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `source` | `Object[]` 或 `Object` | — | 待压缩的对象数组（单个对象会自动包裹为数组） |
+| `opts` | `Object` | — | 可选配置 |
+| `opts.trimTrailingNulls` | `boolean` | `false` | 是否去除行尾的 `null` 值 |
+
 **特点：**
 - `keys` 取所有对象的 key 并集，按首次出现顺序排列
 - 某对象缺失某字段 → 对应 row 位置填充 `null`
@@ -55,21 +63,46 @@ const compressed = compress(users);
 ```js
 const data = [
   { name: '张三', age: 28, profile: { avatar: 'a.jpg', bio: 'Hello' } },
-  { name: '李四', age: 35, profile: { avatar: 'b.jpg' } },  // 缺失 bio
+  { name: '李四', age: 35, profile: { avatar: 'b.jpg', file: null } },
+  { name: '王五' },
 ];
 
 compress(data);
 // {
-//   keys: ['name', 'age', { profile: ['avatar', 'bio'] }],
+//   keys: ['name', 'age', { profile: ['avatar', 'bio', 'file'] }],
 //   rows: [
-//     ['张三', 28, ['a.jpg', 'Hello']],
-//     ['李四', 35, ['b.jpg', null    ]]
+//     ['张三', 28, ['a.jpg', 'Hello', null]],
+//     ['李四', 35, ['b.jpg', null, null]],
+//     ['王五', null, null]
 //   ]
 // }
+```
 
-stringify(compress(data));
-// {keys:[name,age,{profile:[avatar,bio]}],rows:[[张三,28,[a.jpg,Hello]],[李四,35,[b.jpg,]]]}
-//                                                                                         ^^ 省略 null，保留逗号
+#### `trimTrailingNulls`：去除尾部 null
+
+启用后，每行及嵌套子行尾部的 `null` 会被去除，进一步压缩体积：
+
+```js
+compress(data, { trimTrailingNulls: true });
+// {
+//   keys: ['name', 'age', { profile: ['avatar', 'bio', 'file'] }],
+//   rows: [
+//     ['张三', 28, ['a.jpg', 'Hello']],
+//     ['李四', 35, ['b.jpg']],
+//     ['王五']
+//   ]
+// }
+```
+
+`decompress` 会自动将缺失的尾部值补回 `null`，roundtrip 还原结果一致：
+
+```js
+decompress(compress(data, { trimTrailingNulls: true }));
+// [
+//   { name: '张三', age: 28, profile: { avatar: 'a.jpg', bio: 'Hello', file: null } },
+//   { name: '李四', age: 35, profile: { avatar: 'b.jpg', bio: null, file: null } },
+//   { name: '王五', age: null, profile: null }
+// ]
 ```
 
 #### 对象数组示例（订单场景）
@@ -134,10 +167,21 @@ compress(orders);
 // }
 // specs 的 key 取并集：第一单有 layout，第二单有 size → 都保留，缺失的填 null
 
-stringify(compress(orders));
+compress(orders, { trimTrailingNulls: true });
+// rows 变为：
+// [
+//   ['A001', '张三', [
+//     ['键盘', 299, ['黑色', '104键']],
+//     ['鼠标', 99,  ['白色', null, '4000']]
+//   ]],
+//   ['A002', '李四', [
+//     ['显示器', 1999, ['银色']]
+//   ]]
+// ]
+
+stringify(compress(orders, { trimTrailingNulls: true }));
 // {keys:[orderId,customer,{items:[name,price,{specs:[color,layout,dpi,size]}]}],rows:[[
-//   A001,张三,[[键盘,299,[黑色,104键,,]],[鼠标,99,[白色,,4000,]]]],[A002,李四,[[显示器,1999,[银色,,,27寸]]]]]}
-//            ^^^^^^^^^^^^^^^^^^^^^^^^^^^ specs 中缺失字段用空槽省略 null ^^^^^^^^^^^^^^^^^^^^^^^^
+//   A001,张三,[[键盘,299,[黑色,104键]],[鼠标,99,[白色,,4000]]]],[A002,李四,[[显示器,1999,[银色]]]]]}
 ```
 
 #### 单对象示例
@@ -149,7 +193,7 @@ compress({ name: 'Alice', age: 25 });
 
 ### `decompress(compressed)`
 
-将 `{ keys, rows }` 还原为原始对象数组：
+将 `{ keys, rows }` 还原为原始对象数组。缺失的尾部值会自动补回 `null`：
 
 ```js
 const restored = decompress(compressed);
@@ -258,6 +302,11 @@ const parsed     = parse(text);
 const restored   = decompress(parsed);
 
 // restored 与 data 深度相等
+
+// 启用 trimTrailingNulls 进一步压缩
+const compressedTrim = compress(data, { trimTrailingNulls: true });
+const textTrim       = stringify(compressedTrim);
+// textTrim 比 text 更短
 ```
 
 ### 压缩率计算
@@ -271,33 +320,35 @@ console.log(`压缩率: ${ratio}%`);
 
 ## 压缩效果
 
-基于 `compress-test.js` 基准测试的实际数据（18 组测试，平均压缩率 **52.20%**，所有 roundtrip 解压正确）：
+基于 `compress-test.js` 基准测试的实际数据（18 组测试，所有 roundtrip 解压正确）：
 
-| 数据类型 | 对象数 | 原始大小 | 压缩后 | 压缩率 |
-|---------|-------|---------|-------|-------|
-| 简单用户 | 1,000 | 147.85 KB | 87.36 KB | **40.91%** |
-| 简单用户 | 10,000 | 1.45 MB | 882.34 KB | **40.69%** |
-| 嵌套用户（含 profile.social） | 1,000 | 235.28 KB | 153.03 KB | **34.96%** |
-| 订单（每单1-5商品） | 500 | 166.34 KB | 72.10 KB | **56.66%** |
-| 学校数据（6年级×4班×30生） | 24 | 215.47 KB | 88.39 KB | **58.98%** |
-| 稀疏字段（500条×30字段） | 500 | 144.68 KB | 45.39 KB | **68.62%** |
-| 稀疏字段（2000条×50字段） | 2,000 | 947.88 KB | 292.74 KB | **69.12%** |
-| 深层嵌套（5层组织结构） | 5 | 634.65 KB | 288.75 KB | **54.50%** |
+| 数据类型 | 对象数 | 原始大小 | 不 trim | 压缩率 | trim | 压缩率 | 差值 |
+|---------|-------|---------|---------|-------|------|-------|------|
+| 简单用户 | 1,000 | 147.61 KB | 87.12 KB | 40.98% | 87.12 KB | 40.98% | — |
+| 简单用户 | 10,000 | 1.45 MB | 882.51 KB | 40.69% | 882.51 KB | 40.69% | — |
+| 嵌套用户（含 profile.social） | 1,000 | 235.70 KB | 153.56 KB | 34.85% | 153.27 KB | 34.97% | -294 B |
+| 订单（每单1-5商品） | 500 | 166.95 KB | 72.30 KB | 56.69% | 72.30 KB | 56.69% | — |
+| 学校数据（6年级×4班×30生） | 24 | 214.86 KB | 88.88 KB | 58.63% | 88.53 KB | 58.80% | -365 B |
+| 稀疏字段（500条×30字段） | 500 | 144.61 KB | 45.40 KB | 68.60% | 45.13 KB | 68.79% | -276 B |
+| 稀疏字段（2000条×50字段） | 2,000 | 951.94 KB | 293.62 KB | 69.16% | 292.49 KB | 69.27% | -1.13 KB |
+| 深层嵌套（5层组织结构） | 5 | 634.60 KB | 289.02 KB | 54.46% | 289.02 KB | 54.46% | — |
 
 **结论：**
 1. 字段名越长、数量越多，压缩效果越好
 2. 对象数组（订单条目、学生列表）压缩效果显著（55–59%）
 3. 稀疏字段压缩率最高 — 缺失字段的 null 通过空槽省略（67–69%）
-4. 深层嵌套结构能获得更好的压缩效果
-5. `stringify` 省略引号进一步减少文本体积
+4. `trimTrailingNulls` 在数据有缺失尾部字段时额外节省体积（最高 1.48 KB / 5000 条）
+5. 数据完整无缺失字段时，trim 无额外收益
+6. 深层嵌套结构能获得更好的压缩效果
+7. `stringify` 省略引号进一步减少文本体积
 
 ## 开发
 
 ```bash
-# 运行测试
+# 运行测试（192 个用例，100% 覆盖率）
 npm test
 
-# 运行压缩率基准测试
+# 运行压缩率基准测试（含 trim 对比）
 node compress-test.js
 ```
 

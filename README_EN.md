@@ -21,7 +21,7 @@ npm install slimjson
 
 ## API
 
-### `compress(source)`
+### `compress(source, opts?)`
 
 Compresses an object array into a `{ keys, rows }` structure:
 
@@ -43,6 +43,14 @@ const compressed = compress(users);
 // }
 ```
 
+**Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `source` | `Object[]` or `Object` | — | Object array to compress (single object is auto-wrapped) |
+| `opts` | `Object` | — | Optional configuration |
+| `opts.trimTrailingNulls` | `boolean` | `false` | Remove trailing `null` values from each row |
+
 **Features:**
 - `keys` takes the union of all object keys, ordered by first appearance
 - Missing fields in an object → fill `null` at the corresponding row position
@@ -50,32 +58,51 @@ const compressed = compress(users);
 - Object arrays (e.g. order items) are recursively compressed the same way
 - When a plain object is passed (not an array), it is treated as a single-element array
 
-```js
-compress({ name: 'Alice', age: 25 });
-// Equivalent to compress([{ name: 'Alice', age: 25 }])
-// { keys: ['name', 'age'], rows: [['Alice', 25]] }
-```
-
 #### Nested Object Example
 
 ```js
 const data = [
   { name: 'Alice', age: 28, profile: { avatar: 'a.jpg', bio: 'Hello' } },
-  { name: 'Bob',   age: 35, profile: { avatar: 'b.jpg' } },  // missing bio
+  { name: 'Bob',   age: 35, profile: { avatar: 'b.jpg', file: null } },
+  { name: 'Carol' },
 ];
 
 compress(data);
 // {
-//   keys: ['name', 'age', { profile: ['avatar', 'bio'] }],
+//   keys: ['name', 'age', { profile: ['avatar', 'bio', 'file'] }],
 //   rows: [
-//     ['Alice', 28, ['a.jpg', 'Hello']],
-//     ['Bob',   35, ['b.jpg', null    ]]
+//     ['Alice', 28, ['a.jpg', 'Hello', null]],
+//     ['Bob',   35, ['b.jpg', null, null]],
+//     ['Carol', null, null]
 //   ]
 // }
+```
 
-stringify(compress(data));
-// {keys:[name,age,{profile:[avatar,bio]}],rows:[[Alice,28,[a.jpg,Hello]],[Bob,35,[b.jpg,]]]}
-//                                                                                         ^^ null omitted, comma retained
+#### `trimTrailingNulls`: Remove Trailing nulls
+
+When enabled, trailing `null` values in each row (and nested sub-rows) are removed for further compression:
+
+```js
+compress(data, { trimTrailingNulls: true });
+// {
+//   keys: ['name', 'age', { profile: ['avatar', 'bio', 'file'] }],
+//   rows: [
+//     ['Alice', 28, ['a.jpg', 'Hello']],
+//     ['Bob',   35, ['b.jpg']],
+//     ['Carol']
+//   ]
+// }
+```
+
+`decompress` automatically fills missing trailing values with `null`, so the roundtrip result is identical:
+
+```js
+decompress(compress(data, { trimTrailingNulls: true }));
+// [
+//   { name: 'Alice', age: 28, profile: { avatar: 'a.jpg', bio: 'Hello', file: null } },
+//   { name: 'Bob',   age: 35, profile: { avatar: 'b.jpg', bio: null, file: null } },
+//   { name: 'Carol', age: null, profile: null }
+// ]
 ```
 
 #### Object Array Example (Order Scenario)
@@ -140,15 +167,22 @@ compress(orders);
 // }
 // specs keys take the union: order 1 has layout, order 2 has size → both kept, missing fields filled with null
 
-stringify(compress(orders));
-// {keys:[orderId,customer,{items:[name,price,{specs:[color,layout,dpi,size]}]}],rows:[[
-//   A001,Alice,[[Keyboard,299,[Black,104-key,,]],[Mouse,99,[White,,4000,]]]],[A002,Bob,[[Monitor,1999,[Silver,,,27in]]]]]}
-//            ^^^^^^^^^^^^^^^^^^^^^^^^^^^ missing fields in specs omitted as empty slots ^^^^^^^^^^^^^^^^^^^^^^^^
+compress(orders, { trimTrailingNulls: true });
+// rows become:
+// [
+//   ['A001', 'Alice', [
+//     ['Keyboard', 299, ['Black', '104-key']],
+//     ['Mouse',    99,  ['White', null, '4000']]
+//   ]],
+//   ['A002', 'Bob', [
+//     ['Monitor', 1999, ['Silver']]
+//   ]]
+// ]
 ```
 
 ### `decompress(compressed)`
 
-Restores `{ keys, rows }` back to the original object array:
+Restores `{ keys, rows }` back to the original object array. Missing trailing values are automatically filled with `null`:
 
 ```js
 const restored = decompress(compressed);
@@ -257,6 +291,11 @@ const parsed     = parse(text);
 const restored   = decompress(parsed);
 
 // restored is deep-equal to data
+
+// Enable trimTrailingNulls for further compression
+const compressedTrim = compress(data, { trimTrailingNulls: true });
+const textTrim       = stringify(compressedTrim);
+// textTrim is shorter than text
 ```
 
 ### Compression Ratio Calculation
@@ -270,33 +309,35 @@ console.log(`Compression ratio: ${ratio}%`);
 
 ## Compression Results
 
-Based on actual data from `compress-test.js` benchmarks (18 test cases, average compression ratio **52.20%**, all roundtrip decompressions verified):
+Based on actual data from `compress-test.js` benchmarks (18 test cases, all roundtrip decompressions verified):
 
-| Data Type | Object Count | Original Size | Compressed | Ratio |
-|-----------|-------------|---------------|------------|-------|
-| Simple users | 1,000 | 147.85 KB | 87.36 KB | **40.91%** |
-| Simple users | 10,000 | 1.45 MB | 882.34 KB | **40.69%** |
-| Nested users (with profile.social) | 1,000 | 235.28 KB | 153.03 KB | **34.96%** |
-| Orders (1-5 items per order) | 500 | 166.34 KB | 72.10 KB | **56.66%** |
-| School data (6 grades x 4 classes x 30 students) | 24 | 215.47 KB | 88.39 KB | **58.98%** |
-| Sparse fields (500 records x 30 fields) | 500 | 144.68 KB | 45.39 KB | **68.62%** |
-| Sparse fields (2000 records x 50 fields) | 2,000 | 947.88 KB | 292.74 KB | **69.12%** |
-| Deep nesting (5-level org structure) | 5 | 634.65 KB | 288.75 KB | **54.50%** |
+| Data Type | Count | Original | No trim | Ratio | Trim | Ratio | Diff |
+|-----------|-------|----------|---------|-------|------|-------|------|
+| Simple users | 1,000 | 147.61 KB | 87.12 KB | 40.98% | 87.12 KB | 40.98% | — |
+| Simple users | 10,000 | 1.45 MB | 882.51 KB | 40.69% | 882.51 KB | 40.69% | — |
+| Nested users (with profile.social) | 1,000 | 235.70 KB | 153.56 KB | 34.85% | 153.27 KB | 34.97% | -294 B |
+| Orders (1-5 items per order) | 500 | 166.95 KB | 72.30 KB | 56.69% | 72.30 KB | 56.69% | — |
+| School data (6 grades x 4 classes x 30 students) | 24 | 214.86 KB | 88.88 KB | 58.63% | 88.53 KB | 58.80% | -365 B |
+| Sparse fields (500 records x 30 fields) | 500 | 144.61 KB | 45.40 KB | 68.60% | 45.13 KB | 68.79% | -276 B |
+| Sparse fields (2000 records x 50 fields) | 2,000 | 951.94 KB | 293.62 KB | 69.16% | 292.49 KB | 69.27% | -1.13 KB |
+| Deep nesting (5-level org structure) | 5 | 634.60 KB | 289.02 KB | 54.46% | 289.02 KB | 54.46% | — |
 
 **Conclusions:**
 1. Longer field names and more fields yield better compression
 2. Object arrays (order items, student lists) show significant compression (55–59%)
 3. Sparse fields achieve the highest compression — missing field nulls omitted as empty slots (67–69%)
-4. Deeper nested structures achieve better compression
-5. `stringify` quote omission further reduces text size
+4. `trimTrailingNulls` saves additional space when data has missing trailing fields (up to 1.48 KB / 5000 records)
+5. When data has no missing fields, trim provides no extra benefit
+6. Deeper nested structures achieve better compression
+7. `stringify` quote omission further reduces text size
 
 ## Development
 
 ```bash
-# Run tests
+# Run tests (192 cases, 100% coverage)
 npm test
 
-# Run compression ratio benchmarks
+# Run compression ratio benchmarks (with trim comparison)
 node compress-test.js
 ```
 
