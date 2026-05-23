@@ -542,3 +542,4 @@ function parse(text) {
 }
 
 module.exports = { compress, decompress, stringify, parse };
+module.exports.default = module.exports;
