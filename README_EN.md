@@ -492,7 +492,7 @@ mimo-v2.5-pro
 ## Development
 
 ```bash
-# Run tests (192 cases, 100% coverage)
+# Run tests (209 cases, 100% coverage)
 npm test
 
 # Run compression ratio benchmarks (with trim comparison)

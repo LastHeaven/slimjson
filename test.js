@@ -75,6 +75,145 @@ const src5 = [
     }
 ];
 
+// 场景6：四层嵌套（组织→部门→团队→成员+技能标签）
+const src6 = [
+    {
+        "org": "TechCorp",
+        "departments": [
+            {
+                "name": "Engineering",
+                "teams": [
+                    {
+                        "lead": "Alice",
+                        "members": [
+                            { "name": "Bob", "level": "L5", "skills": ["Go", "K8s"] },
+                            { "name": "Carol", "level": "L4", "skills": ["Python", "ML"] }
+                        ]
+                    },
+                    {
+                        "lead": "Dave",
+                        "members": [
+                            { "name": "Eve", "level": "L6" }
+                        ]
+                    }
+                ]
+            },
+            {
+                "name": "Design",
+                "teams": [
+                    {
+                        "lead": "Frank",
+                        "members": [
+                            { "name": "Grace", "level": "L3", "skills": ["Figma", "CSS"] }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+];
+
+// 场景7：同层混合 — 对象同时包含嵌套对象和嵌套数组，且字段不对称
+const src7 = [
+    {
+        "product": "Keyboard",
+        "spec": { "weight": "800g", "layout": "104-key", "switch": "Cherry MX" },
+        "reviews": [
+            { "user": "Alice", "rating": 5, "comment": "Great!" },
+            { "user": "Bob", "rating": 4 }
+        ],
+        "tags": ["mechanical", "RGB"]
+    },
+    {
+        "product": "Mouse",
+        "spec": { "weight": "60g", "dpi": 16000 },
+        "reviews": [
+            { "user": "Carol", "rating": 3, "comment": "Too light" },
+            { "user": "Dave", "rating": 5, "comment": "Perfect" },
+            { "user": "Eve", "rating": 4 }
+        ]
+    },
+    {
+        "product": "Monitor",
+        "spec": { "weight": "5kg", "size": "27in", "resolution": "4K", "refresh": 144 },
+        "reviews": []
+    }
+];
+
+// 场景8：数组的数组内含对象（矩阵 + 内层对象不对称）
+const src8 = [
+    {
+        "matrix": [
+            [{ "x": 1, "y": "a" }, { "x": 2, "y": "b", "z": 99 }],
+            [{ "x": 3, "y": "c" }]
+        ],
+        "label": "grid-A"
+    },
+    {
+        "matrix": [
+            [{ "x": 10, "y": "d", "z": 88 }],
+            [{ "x": 20, "y": "e" }, { "x": 30, "y": "f", "z": 77 }],
+            [{ "x": 40, "y": "g" }]
+        ],
+        "label": "grid-B"
+    }
+];
+
+// 场景9：深层缺失 — 每层都有字段缺失
+const src9 = [
+    {
+        "company": "Acme",
+        "address": { "city": "Beijing", "zip": "100000" },
+        "departments": [
+            {
+                "name": "Sales",
+                "head": { "name": "Tom", "age": 40 },
+                "staff": [
+                    { "name": "Amy", "phone": "111" },
+                    { "name": "Ben" }
+                ]
+            }
+        ]
+    },
+    {
+        "company": "Globex",
+        "departments": [
+            {
+                "name": "Tech",
+                "head": { "name": "Cat", "age": 35, "title": "VP" },
+                "staff": [
+                    { "name": "Dan", "phone": "222", "email": "dan@x.com" },
+                    { "name": "Eve", "email": "eve@x.com" }
+                ]
+            },
+            {
+                "name": "Ops",
+                "staff": [
+                    { "name": "Fox" }
+                ]
+            }
+        ]
+    }
+];
+
+// 场景10：数组内含不同结构的对象（同一数组内对象 key 完全不同）
+const src10 = [
+    {
+        "events": [
+            { "type": "click", "target": "button", "timestamp": 1000 },
+            { "type": "scroll", "offset": 500, "direction": "down" },
+            { "type": "input", "field": "email", "value": "a@b.com", "valid": true }
+        ],
+        "session": "abc"
+    },
+    {
+        "events": [
+            { "type": "submit", "form": "login", "success": false, "error": "timeout" }
+        ],
+        "session": "xyz"
+    }
+];
+
 // decompress 始终返回规范化数据（补齐缺失 key 为 null）
 const src3Decompressed = [
     { "姓名": "张三", "年龄": 19, "家人": [{ "姓名": "张四", "年龄": 40 }], "伴侣": null },
@@ -122,6 +261,149 @@ const src5Decompressed = [
     }
 ];
 
+// 场景6 decompressed：四层嵌套，skills 缺失补 null
+const src6Decompressed = [
+    {
+        "org": "TechCorp",
+        "departments": [
+            {
+                "name": "Engineering",
+                "teams": [
+                    {
+                        "lead": "Alice",
+                        "members": [
+                            { "name": "Bob", "level": "L5", "skills": ["Go", "K8s"] },
+                            { "name": "Carol", "level": "L4", "skills": ["Python", "ML"] }
+                        ]
+                    },
+                    {
+                        "lead": "Dave",
+                        "members": [
+                            { "name": "Eve", "level": "L6", "skills": null }
+                        ]
+                    }
+                ]
+            },
+            {
+                "name": "Design",
+                "teams": [
+                    {
+                        "lead": "Frank",
+                        "members": [
+                            { "name": "Grace", "level": "L3", "skills": ["Figma", "CSS"] }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+];
+
+// 场景7 decompressed：同层混合，缺失字段补 null
+const src7Decompressed = [
+    {
+        "product": "Keyboard",
+        "spec": { "weight": "800g", "layout": "104-key", "switch": "Cherry MX", "dpi": null, "size": null, "resolution": null, "refresh": null },
+        "reviews": [
+            { "user": "Alice", "rating": 5, "comment": "Great!" },
+            { "user": "Bob", "rating": 4, "comment": null }
+        ],
+        "tags": ["mechanical", "RGB"]
+    },
+    {
+        "product": "Mouse",
+        "spec": { "weight": "60g", "layout": null, "switch": null, "dpi": 16000, "size": null, "resolution": null, "refresh": null },
+        "reviews": [
+            { "user": "Carol", "rating": 3, "comment": "Too light" },
+            { "user": "Dave", "rating": 5, "comment": "Perfect" },
+            { "user": "Eve", "rating": 4, "comment": null }
+        ],
+        "tags": null
+    },
+    {
+        "product": "Monitor",
+        "spec": { "weight": "5kg", "layout": null, "switch": null, "dpi": null, "size": "27in", "resolution": "4K", "refresh": 144 },
+        "reviews": [],
+        "tags": null
+    }
+];
+
+// 场景8 decompressed：数组的数组内含对象
+const src8Decompressed = [
+    {
+        "matrix": [
+            [{ "x": 1, "y": "a", "z": null }, { "x": 2, "y": "b", "z": 99 }],
+            [{ "x": 3, "y": "c", "z": null }]
+        ],
+        "label": "grid-A"
+    },
+    {
+        "matrix": [
+            [{ "x": 10, "y": "d", "z": 88 }],
+            [{ "x": 20, "y": "e", "z": null }, { "x": 30, "y": "f", "z": 77 }],
+            [{ "x": 40, "y": "g", "z": null }]
+        ],
+        "label": "grid-B"
+    }
+];
+
+// 场景9 decompressed：深层缺失
+const src9Decompressed = [
+    {
+        "company": "Acme",
+        "address": { "city": "Beijing", "zip": "100000" },
+        "departments": [
+            {
+                "name": "Sales",
+                "head": { "name": "Tom", "age": 40, "title": null },
+                "staff": [
+                    { "name": "Amy", "phone": "111", "email": null },
+                    { "name": "Ben", "phone": null, "email": null }
+                ]
+            }
+        ]
+    },
+    {
+        "company": "Globex",
+        "address": null,
+        "departments": [
+            {
+                "name": "Tech",
+                "head": { "name": "Cat", "age": 35, "title": "VP" },
+                "staff": [
+                    { "name": "Dan", "phone": "222", "email": "dan@x.com" },
+                    { "name": "Eve", "phone": null, "email": "eve@x.com" }
+                ]
+            },
+            {
+                "name": "Ops",
+                "head": null,
+                "staff": [
+                    { "name": "Fox", "phone": null, "email": null }
+                ]
+            }
+        ]
+    }
+];
+
+// 场景10 decompressed：数组内含不同结构的对象
+const src10Decompressed = [
+    {
+        "events": [
+            { "type": "click", "target": "button", "timestamp": 1000, "offset": null, "direction": null, "field": null, "value": null, "valid": null, "form": null, "success": null, "error": null },
+            { "type": "scroll", "target": null, "timestamp": null, "offset": 500, "direction": "down", "field": null, "value": null, "valid": null, "form": null, "success": null, "error": null },
+            { "type": "input", "target": null, "timestamp": null, "offset": null, "direction": null, "field": "email", "value": "a@b.com", "valid": true, "form": null, "success": null, "error": null }
+        ],
+        "session": "abc"
+    },
+    {
+        "events": [
+            { "type": "submit", "target": null, "timestamp": null, "offset": null, "direction": null, "field": null, "value": null, "valid": null, "form": "login", "success": false, "error": "timeout" }
+        ],
+        "session": "xyz"
+    }
+];
+
 // ============================================================
 //  测试
 // ============================================================
@@ -138,30 +420,45 @@ describe('compress / decompress', () => {
             describe('样例1：基础嵌套', () => {
                 const r1 = compress(src1, copt);
 
-                test('compress 不出错', () => {
-                    expect(r1.schema).toBeDefined();
-                    expect(r1.data).toBeDefined();
+                test('schema 一致', () => {
+                    expect(r1.schema).toEqual([[
+                        "姓名", "年龄", { "家人": [["姓名", "年龄"]] }, { "伴侣": ["姓名", "年龄"] }
+                    ]]);
                 });
 
-                test('与预期 schema 一致', () => {
-                    expect(r1.schema[0]).toEqual([
-                        "姓名", "年龄", { "家人": [["姓名", "年龄"]] }, { "伴侣": ["姓名", "年龄"] }
-                    ]);
+                test('data 一致', () => {
+                    if (trim) {
+                        expect(r1.data).toEqual([
+                            ['张三', 19, [['张四', 40], ['李五', 41]], ['王六', 18]],
+                            ['李小花', 28, [['李大国', 55], ['王淑芬', 53]], ['赵明', 30]]
+                        ]);
+                    } else {
+                        expect(r1.data).toEqual([
+                            ['张三', 19, [['张四', 40], ['李五', 41]], ['王六', 18]],
+                            ['李小花', 28, [['李大国', 55], ['王淑芬', 53]], ['赵明', 30]]
+                        ]);
+                    }
                 });
 
                 test('还原一致', () => {
                     expect(decompress(r1)).toEqual(src1);
+                });
+
+                test('stringify/parse 往返', () => {
+                    const str = stringify(r1);
+                    expect(parse(str)).toEqual(r1);
+                    expect(decompress(parse(str))).toEqual(src1);
                 });
             });
 
             describe('样例2：原始类型数组字段', () => {
                 const r2 = compress(src2, copt);
 
-                test('与预期 schema 一致', () => {
-                    expect(r2.schema[0]).toEqual(["姓名", "班级"]);
+                test('schema 一致', () => {
+                    expect(r2.schema).toEqual([["姓名", "班级"]]);
                 });
 
-                test('与预期 data 一致', () => {
+                test('data 一致', () => {
                     expect(r2.data).toEqual([
                         [["张三", "李四", "王五"], "23班"],
                         [["李小花", "张晓", "李旺", "张思"], "24班"]
@@ -171,166 +468,277 @@ describe('compress / decompress', () => {
                 test('还原一致', () => {
                     expect(decompress(r2)).toEqual(src2);
                 });
+
+                test('stringify/parse 往返', () => {
+                    const str = stringify(r2);
+                    expect(parse(str)).toEqual(r2);
+                    expect(decompress(parse(str))).toEqual(src2);
+                });
             });
 
             describe('场景3：顶层缺失字段（后端省略 null）', () => {
                 const r3 = compress(src3, copt);
 
-                test('schema 包含伴侣', () => {
-                    expect(r3.schema[0]).toEqual(["姓名", "年龄", { "家人": [["姓名", "年龄"]] }, { "伴侣": ["姓名", "年龄"] }]);
+                test('schema 一致', () => {
+                    expect(r3.schema).toEqual([["姓名", "年龄", { "家人": [["姓名", "年龄"]] }, { "伴侣": ["姓名", "年龄"] }]]);
                 });
 
-                test(`row[0] 伴侣${trim ? '被 trim' : '为 null'}`, () => {
+                test('data 一致', () => {
                     if (trim) {
-                        expect(r3.data[0].length).toBe(3);
+                        expect(r3.data).toEqual([
+                            ['张三', 19, [['张四', 40]]],
+                            ['李小花', 28, [['李大国', 55]], ['赵明', 30]]
+                        ]);
                     } else {
-                        expect(r3.data[0][3]).toBeNull();
+                        expect(r3.data).toEqual([
+                            ["张三", 19, [["张四", 40]], null],
+                            ["李小花", 28, [["李大国", 55]], ["赵明", 30]]
+                        ]);
                     }
                 });
 
-                test('row[1] 伴侣正常', () => {
-                    expect(r3.data[1][3]).toEqual(["赵明", 30]);
-                });
-
-                test('还原（null 补齐）', () => {
+                test('还原一致', () => {
                     expect(decompress(r3)).toEqual(src3Decompressed);
                 });
 
-                test('张三的伴侣为 null', () => {
-                    expect(decompress(r3)[0].伴侣).toBeNull();
-                });
-
-                test('李小花的伴侣正常', () => {
-                    expect(decompress(r3)[1].伴侣.姓名).toBe("赵明");
+                test('stringify/parse 往返', () => {
+                    const str = stringify(r3);
+                    expect(parse(str)).toEqual(r3);
+                    expect(decompress(parse(str))).toEqual(src3Decompressed);
                 });
             });
 
             describe('场景4：嵌套对象子 key 不全', () => {
                 const r4 = compress(src4, copt);
 
-                test('schema 中家人包含"关系"', () => {
-                    expect(r4.schema[0]).toEqual(["姓名", "年龄", { "家人": [["姓名", "年龄", "关系"]] }]);
+                test('schema 一致', () => {
+                    expect(r4.schema).toEqual([["姓名", "年龄", { "家人": [["姓名", "年龄", "关系"]] }]]);
                 });
 
-                test(`家人[0] 关系${trim ? '被 trim' : '为 null'}`, () => {
+                test('data 一致', () => {
                     if (trim) {
-                        expect(r4.data[0][2][0].length).toBe(2);
+                        expect(r4.data).toEqual([
+                            ["张三", 19, [["张四", 40], ["李五", 41, "母亲"]]]
+                        ]);
                     } else {
-                        expect(r4.data[0][2][0][2]).toBeNull();
+                        expect(r4.data).toEqual([
+                            ["张三", 19, [["张四", 40, null], ["李五", 41, "母亲"]]]
+                        ]);
                     }
                 });
 
-                test('家人[1] 关系正常', () => {
-                    expect(r4.data[0][2][1][2]).toBe("母亲");
-                });
-
-                test('还原（null 补齐）', () => {
+                test('还原一致', () => {
                     expect(decompress(r4)).toEqual(src4Decompressed);
                 });
 
-                test('第1个家人关系为 null', () => {
-                    expect(decompress(r4)[0].家人[0].关系).toBeNull();
-                });
-
-                test('第2个家人关系正常', () => {
-                    expect(decompress(r4)[0].家人[1].关系).toBe("母亲");
+                test('stringify/parse 往返', () => {
+                    const str = stringify(r4);
+                    expect(parse(str)).toEqual(r4);
+                    expect(decompress(parse(str))).toEqual(src4Decompressed);
                 });
             });
 
             describe('场景5：复杂嵌套（年级/班级/班主任/其他老师/学生+成绩）', () => {
                 const r5 = compress(src5, copt);
 
-                // —— schema ——
-                test('schema 顶层包含年级/班级', () => {
-                    expect(r5.schema[0].slice(0, 2)).toEqual(["年级", "班级"]);
-                });
-
-                test('schema 包含嵌套班主任', () => {
-                    expect(JSON.stringify(r5.schema[0][2])).toContain('班主任');
-                });
-
-                test('schema 包含嵌套其他老师', () => {
-                    expect(JSON.stringify(r5.schema[0][3])).toContain('其他老师');
-                });
-
-                test('schema 包含嵌套学生', () => {
-                    expect(JSON.stringify(r5.schema[0][4])).toContain('学生');
-                });
-
-                test('schema 完整结构', () => {
-                    expect(r5.schema[0]).toEqual([
+                test('schema 一致', () => {
+                    expect(r5.schema).toEqual([[
                         "年级",
                         "班级",
                         { "班主任": ["姓名", "年龄", "科目"] },
                         { "其他老师": [["姓名", "年龄", "科目"]] },
                         { "学生": [["姓名", "年龄", "性别", { "成绩": ["语文", "数学", "英语"] }]] }
-                    ]);
+                    ]]);
                 });
 
-                // —— data 数量 ——
-                test('1班班主任正常', () => {
-                    expect(r5.data[0][2]).toEqual(["王老师", 35, "语文"]);
+                test('data 一致', () => {
+                    if (trim) {
+                        expect(r5.data).toEqual([
+                            ['一年级', '1班', ['王老师', 35, '语文'], [['李老师', 28, '数学'], ['张老师', 40, '英语']], [['小明', 7, '男', [95, 88, 92]], ['小红', 7, '女', [90, 96, 89]]]],
+                            ['一年级', '2班', ['赵老师', 42, '数学'], [['钱老师', 31, '语文'], ['孙老师', 33, '英语'], ['周老师', 26, '体育']], [['小刚', 7, '男', [78, 85]], ['小丽', 7, '女', [99, 100, 97]], ['小强', 8, '男', [null, 60]]]]
+                        ]);
+                    } else {
+                        expect(r5.data).toEqual([
+                            ['一年级', '1班', ['王老师', 35, '语文'], [['李老师', 28, '数学'], ['张老师', 40, '英语']], [['小明', 7, '男', [95, 88, 92]], ['小红', 7, '女', [90, 96, 89]]]],
+                            ['一年级', '2班', ['赵老师', 42, '数学'], [['钱老师', 31, '语文'], ['孙老师', 33, '英语'], ['周老师', 26, '体育']], [['小刚', 7, '男', [78, 85, null]], ['小丽', 7, '女', [99, 100, 97]], ['小强', 8, '男', [null, 60, null]]]]
+                        ]);
+                    }
                 });
 
-                test('1班其他老师数量=2', () => {
-                    expect(r5.data[0][3].length).toBe(2);
-                });
-
-                test('1班学生数量=2', () => {
-                    expect(r5.data[0][4].length).toBe(2);
-                });
-
-                test('2班班主任正常', () => {
-                    expect(r5.data[1][2]).toEqual(["赵老师", 42, "数学"]);
-                });
-
-                test('2班其他老师数量=3', () => {
-                    expect(r5.data[1][3].length).toBe(3);
-                });
-
-                test('2班学生数量=3', () => {
-                    expect(r5.data[1][4].length).toBe(3);
-                });
-
-                // —— 成绩子对象缺失 key 补 null ——
-                test('小刚英语成绩为 null（缺英语字段）', () => {
-                    expect(decompress(r5)[1]["学生"][0]["成绩"]["英语"]).toBeNull();
-                });
-
-                test('小刚语文成绩正常', () => {
-                    expect(r5.data[1][4][0][3][0]).toBe(78);
-                });
-
-                test('小强语文成绩为 null（缺语文字段）', () => {
-                    expect(decompress(r5)[1]["学生"][2]["成绩"]["语文"]).toBeNull();
-                });
-
-                test('小强数学成绩正常', () => {
-                    const scores = r5.data[1][4][2][3];
-                    // trim=true  → [null, 60]，数学在 index 1
-                    // trim=false → [null, 60, null]，数学在 index 1
-                    expect(scores[1]).toBe(60);
-                });
-
-                test('小强英语成绩为 null（缺英语字段）', () => {
-                    expect(decompress(r5)[1]["学生"][2]["成绩"]["英语"]).toBeNull();
-                });
-
-                // —— 还原验证 ——
-                test('还原后与 decompressed 一致', () => {
+                test('还原一致', () => {
                     expect(decompress(r5)).toEqual(src5Decompressed);
                 });
 
-                test('1班年级正确', () => {
-                    expect(decompress(r5)[0]["年级"]).toBe("一年级");
+                test('stringify/parse 往返', () => {
+                    const str = stringify(r5);
+                    expect(parse(str)).toEqual(r5);
+                    expect(decompress(parse(str))).toEqual(src5Decompressed);
+                });
+            });
+
+            /* =========================================================
+               场景6-10：复杂嵌套对象和数组
+               ========================================================= */
+
+            describe('场景6：四层嵌套（组织→部门→团队→成员+技能标签）', () => {
+                const r6 = compress(src6, copt);
+
+                test('schema 一致', () => {
+                    expect(r6.schema).toEqual([['org', { departments: [['name', { teams: [['lead', { members: [['name', 'level', 'skills']] }]] }]] }]]);
+                });
+                test('data 一致', () => {
+                    if (trim) {
+                        expect(r6.data).toEqual([['TechCorp',[['Engineering',[['Alice',[['Bob','L5',['Go','K8s']],['Carol','L4',['Python','ML']]]],['Dave',[['Eve','L6']]]]],['Design',[['Frank',[['Grace','L3',['Figma','CSS']]]]]]]]]);
+                    } else {
+                        expect(r6.data).toEqual([['TechCorp',[['Engineering',[['Alice',[['Bob','L5',['Go','K8s']],['Carol','L4',['Python','ML']]]],['Dave',[['Eve','L6',null]]]]],['Design',[['Frank',[['Grace','L3',['Figma','CSS']]]]]]]]]);
+                    }
+                });
+                test('还原一致', () => { expect(decompress(r6)).toEqual(src6Decompressed); });
+                test('stringify/parse 往返', () => {
+                    const str = stringify(r6);
+                    expect(parse(str)).toEqual(r6);
+                    expect(decompress(parse(str))).toEqual(src6Decompressed);
+                });
+            });
+
+            describe('场景7：同层混合 — 嵌套对象+嵌套数组+原始数组，字段不对称', () => {
+                const r7 = compress(src7, copt);
+
+                test('schema 一致', () => {
+                    expect(r7.schema).toEqual([['product', { spec: ['weight', 'layout', 'switch', 'dpi', 'size', 'resolution', 'refresh'] }, { reviews: [['user', 'rating', 'comment']] }, 'tags']]);
+                });
+                test('data 一致', () => {
+                    if (trim) {
+                        expect(r7.data).toEqual([
+                            ['Keyboard', ['800g', '104-key', 'Cherry MX'], [['Alice', 5, 'Great!'], ['Bob', 4]], ['mechanical', 'RGB']],
+                            ['Mouse', ['60g', null, null, 16000], [['Carol', 3, 'Too light'], ['Dave', 5, 'Perfect'], ['Eve', 4]]],
+                            ['Monitor', ['5kg', null, null, null, '27in', '4K', 144], []]
+                        ]);
+                    } else {
+                        expect(r7.data).toEqual([
+                            ['Keyboard', ['800g', '104-key', 'Cherry MX', null, null, null, null], [['Alice', 5, 'Great!'], ['Bob', 4, null]], ['mechanical', 'RGB']],
+                            ['Mouse', ['60g', null, null, 16000, null, null, null], [['Carol', 3, 'Too light'], ['Dave', 5, 'Perfect'], ['Eve', 4, null]], null],
+                            ['Monitor', ['5kg', null, null, null, '27in', '4K', 144], [], null]
+                        ]);
+                    }
+                });
+                test('还原一致', () => { expect(decompress(r7)).toEqual(src7Decompressed); });
+                test('stringify/parse 往返', () => {
+                    const str = stringify(r7);
+                    expect(parse(str)).toEqual(r7);
+                    expect(decompress(parse(str))).toEqual(src7Decompressed);
+                });
+            });
+
+            describe('场景8：数组的数组内含对象（矩阵，内层对象 key 不对称）', () => {
+                const r8 = compress(src8, copt);
+
+                test('schema 一致', () => {
+                    expect(r8.schema).toEqual([[{ matrix: [[['x', 'y', 'z']]] }, 'label']]);
+                });
+                test('data 一致', () => {
+                    if (trim) {
+                        expect(r8.data).toEqual([
+                            [[[[1, 'a'], [2, 'b', 99]], [[3, 'c']]], 'grid-A'],
+                            [[[[10, 'd', 88]], [[20, 'e'], [30, 'f', 77]], [[40, 'g']]], 'grid-B']
+                        ]);
+                    } else {
+                        expect(r8.data).toEqual([
+                            [[[[1, 'a', null], [2, 'b', 99]], [[3, 'c', null]]], 'grid-A'],
+                            [[[[10, 'd', 88]], [[20, 'e', null], [30, 'f', 77]], [[40, 'g', null]]], 'grid-B']
+                        ]);
+                    }
+                });
+                test('还原一致', () => { expect(decompress(r8)).toEqual(src8Decompressed); });
+                test('stringify/parse 往返', () => {
+                    const str = stringify(r8);
+                    expect(parse(str)).toEqual(r8);
+                    expect(decompress(parse(str))).toEqual(src8Decompressed);
+                });
+            });
+
+            describe('场景9：深层缺失 — 每层都有字段缺失', () => {
+                const r9 = compress(src9, copt);
+
+                test('schema 一致', () => {
+                    expect(r9.schema).toEqual([['company', { address: ['city', 'zip'] }, { departments: [['name', { head: ['name', 'age', 'title'] }, { staff: [['name', 'phone', 'email']] }]] }]]);
+                });
+                test('data 一致', () => {
+                    if (trim) {
+                        expect(r9.data).toEqual([
+                            ['Acme', ['Beijing', '100000'], [['Sales', ['Tom', 40], [['Amy', '111'], ['Ben']]]]],
+                            ['Globex', null, [['Tech', ['Cat', 35, 'VP'], [['Dan', '222', 'dan@x.com'], ['Eve', null, 'eve@x.com']]], ['Ops', null, [['Fox']]]]]]);
+                    } else {
+                        expect(r9.data).toEqual([
+                            ['Acme', ['Beijing', '100000'], [['Sales', ['Tom', 40, null], [['Amy', '111', null], ['Ben', null, null]]]]],
+                            ['Globex', null, [['Tech', ['Cat', 35, 'VP'], [['Dan', '222', 'dan@x.com'], ['Eve', null, 'eve@x.com']]], ['Ops', null, [['Fox', null, null]]]]]]);
+                    }
+                });
+                test('还原一致', () => { expect(decompress(r9)).toEqual(src9Decompressed); });
+                test('stringify/parse 往返', () => {
+                    const str = stringify(r9);
+                    expect(parse(str)).toEqual(r9);
+                    expect(decompress(parse(str))).toEqual(src9Decompressed);
+                });
+            });
+
+            describe('场景10：数组内含不同结构的对象（同数组 key 并集）', () => {
+                const r10 = compress(src10, copt);
+
+                test('schema 一致', () => {
+                    expect(r10.schema).toEqual([[{ events: [['type', 'target', 'timestamp', 'offset', 'direction', 'field', 'value', 'valid', 'form', 'success', 'error']] }, 'session']]);
+                });
+                test('data 一致', () => {
+                    if (trim) {
+                        expect(r10.data).toEqual([
+                            [[['click', 'button', 1000], ['scroll', null, null, 500, 'down'], ['input', null, null, null, null, 'email', 'a@b.com', true]], 'abc'],
+                            [[['submit', null, null, null, null, null, null, null, 'login', false, 'timeout']], 'xyz']
+                        ]);
+                    } else {
+                        expect(r10.data).toEqual([
+                            [[['click', 'button', 1000, null, null, null, null, null, null, null, null], ['scroll', null, null, 500, 'down', null, null, null, null, null, null], ['input', null, null, null, null, 'email', 'a@b.com', true, null, null, null]], 'abc'],
+                            [[['submit', null, null, null, null, null, null, null, 'login', false, 'timeout']], 'xyz']
+                        ]);
+                    }
+                });
+                test('还原一致', () => { expect(decompress(r10)).toEqual(src10Decompressed); });
+                test('stringify/parse 往返', () => {
+                    const str = stringify(r10);
+                    expect(parse(str)).toEqual(r10);
+                    expect(decompress(parse(str))).toEqual(src10Decompressed);
+                });
+            });
+
+            /* =========================================================
+               覆盖率补充测试
+               ========================================================= */
+            describe('覆盖率补充', () => {
+                // line 35-36: mergeSchemas 对象 schema 合并不同 key（需经 array-of-arrays 路径）
+                test('数组的数组内含不同 key 的对象 → mergeSchemas 合并', () => {
+                    const src = [[{ a: 1, b: 2 }], [{ a: 3, c: 4 }]];
+                    const r = compress(src, copt);
+                    expect(r.schema).toEqual([[['a', 'b', 'c']]]);
+                    if (trim) {
+                        expect(r.data).toEqual([[[1, 2]], [[3, null, 4]]]);
+                    } else {
+                        expect(r.data).toEqual([[[1, 2, null]], [[3, null, 4]]]);
+                    }
+                    expect(decompress(r)).toEqual([[{ a: 1, b: 2, c: null }], [{ a: 3, b: null, c: 4 }]]);
+                    const str = stringify(r);
+                    expect(parse(str)).toEqual(r);
+                    expect(decompress(parse(str))).toEqual([[{ a: 1, b: 2, c: null }], [{ a: 3, b: null, c: 4 }]]);
                 });
 
-                test('2班第1个学生英语为 null', () => {
-                    expect(decompress(r5)[1]["学生"][0]["成绩"]["英语"]).toBeNull();
-                });
-
-                test('2班第3个学生语文为 null', () => {
-                    expect(decompress(r5)[1]["学生"][2]["成绩"]["语文"]).toBeNull();
+                // line 79: inferSchema 原始值数组返回 undefined
+                test('原始值数组作为字段值 → 不拆解', () => {
+                    const src = [{ name: 'x', nums: [1, 2, 3] }];
+                    const r = compress(src, copt);
+                    expect(r.schema).toEqual([['name', 'nums']]);
+                    expect(r.data).toEqual([['x', [1, 2, 3]]]);
+                    expect(decompress(r)).toEqual(src);
+                    const str = stringify(r);
+                    expect(parse(str)).toEqual(r);
+                    expect(decompress(parse(str))).toEqual(src);
                 });
             });
 
@@ -347,12 +755,15 @@ describe('compress / decompress', () => {
                     expect(compress(null, copt)).toBeNull();
                 });
 
-                test('compress 单个对象 → schema 未包裹，data 平铺', () => {
+                test('compress 单个对象', () => {
                     const obj = { name: '张三', age: 25 };
                     const r = compress(obj, copt);
                     expect(r.schema).toEqual(['name', 'age']);
                     expect(r.data).toEqual(['张三', 25]);
                     expect(decompress(r)).toEqual(obj);
+                    const str = stringify(r);
+                    expect(parse(str)).toEqual(r);
+                    expect(decompress(parse(str))).toEqual(obj);
                 });
 
                 test('compress 非数组 → 返回原值', () => {
@@ -362,16 +773,20 @@ describe('compress / decompress', () => {
                 test('源数组含 null 元素', () => {
                     const src = [{ name: 'a', age: 10 }, null, { name: 'b' }];
                     const r = compress(src, copt);
-                    expect(r.schema[0]).toEqual(['name', 'age']);
-                    expect(r.data[0]).toEqual(['a', 10]);
-                    expect(r.data[2]).toEqual(trim ? ['b'] : ['b', null]);
-                    // null 元素行: [null, null] → trim 后 []，不 trim 仍是 [null, null]
+                    expect(r.schema).toEqual([['name', 'age']]);
                     if (trim) {
-                        expect(r.data[1]).toEqual(null);
+                        expect(r.data).toEqual([['a', 10], null, ['b']]);
                     } else {
-                        expect(r.data[1]).toEqual(null);
+                        expect(r.data).toEqual([['a', 10], null, ['b', null]]);
                     }
                     expect(decompress(r)).toEqual([
+                        { name: 'a', age: 10 },
+                        null,
+                        { name: 'b', age: null }
+                    ]);
+                    const str = stringify(r);
+                    expect(parse(str)).toEqual(r);
+                    expect(decompress(parse(str))).toEqual([
                         { name: 'a', age: 10 },
                         null,
                         { name: 'b', age: null }
@@ -381,108 +796,141 @@ describe('compress / decompress', () => {
                 test('空对象数组字段', () => {
                     const src = [{ name: 'test', items: [] }];
                     const r = compress(src, copt);
-                    expect(r.schema[0]).toEqual(['name', 'items']);
-                    expect(r.data[0]).toEqual(['test', []]);
+                    expect(r.schema).toEqual([['name', 'items']]);
+                    expect(r.data).toEqual([['test', []]]);
                     expect(decompress(r)).toEqual(src);
+                    const str = stringify(r);
+                    expect(parse(str)).toEqual(r);
+                    expect(decompress(parse(str))).toEqual(src);
                 });
 
                 test('嵌套对象数组中含 null 元素（首元 null→退化为 primitive-array）', () => {
                     const src = [{ name: 'a', kids: [null, { name: 'child' }] }];
                     const r = compress(src, copt);
-                    // v[0]===null → 走 primitive-array 分支，不拆解子 key
-                    expect(r.schema[0]).toEqual(['name', 'kids']);
-                    expect(r.data[0]).toEqual(['a', [null, { name: 'child' }]]);
+                    expect(r.schema).toEqual([['name', 'kids']]);
+                    expect(r.data).toEqual([['a', [null, { name: 'child' }]]]);
                     expect(decompress(r)).toEqual(src);
+                    const str = stringify(r);
+                    expect(parse(str)).toEqual(r);
+                    expect(decompress(parse(str))).toEqual(src);
                 });
 
                 test('字段值为 undefined 转 null', () => {
                     const src = [{ a: undefined, b: 1 }];
                     const r = compress(src, copt);
-                    expect(r.schema[0]).toEqual(['a', 'b']);
-                    if (trim) {
-                        expect(r.data[0]).toEqual([null, 1]); // a 的 null 被 trim
-                    } else {
-                        expect(r.data[0]).toEqual([null, 1]);
-                    }
+                    expect(r.schema).toEqual([['a', 'b']]);
+                    expect(r.data).toEqual([[null, 1]]);
+                    expect(decompress(r)).toEqual([{ a: null, b: 1 }]);
+                    const str = stringify(r);
+                    expect(parse(str)).toEqual(r);
+                    expect(decompress(parse(str))).toEqual([{ a: null, b: 1 }]);
                 });
 
                 test('字段值为 null 在 decompress 中还原', () => {
                     const src = [{ a: 1, b: null }];
                     const r = compress(src, copt);
-                    expect(decompress(r)[0].b).toBeNull();
+                    expect(r.schema).toEqual([['a', 'b']]);
                     if (trim) {
-                        expect(r.data[0]).toEqual([1]); // b 的 null 被 trim
+                        expect(r.data).toEqual([[1]]);
                     } else {
-                        expect(r.data[0]).toEqual([1, null]);
+                        expect(r.data).toEqual([[1, null]]);
                     }
+                    expect(decompress(r)).toEqual([{ a: 1, b: null }]);
+                    const str = stringify(r);
+                    expect(parse(str)).toEqual(r);
+                    expect(decompress(parse(str))).toEqual([{ a: 1, b: null }]);
                 });
 
                 test('对象数组中含非对象元素（item typeof!=="object" 分支）', () => {
                     const src = [{ name: 'x', kids: [{ name: 'kid' }, 'string', null] }];
                     const r = compress(src, copt);
-                    // 首元素是对象 → object-array；非对象元素在 buildKeys 收集时被跳过
-                    expect(r.schema[0]).toEqual(['name', { kids: [['name']] }]);
-                    // 非对象元素 → buildRow 返回 [null]
-                    // trim 后 [null]→[]，不 trim 保持 [null]
-                    const nonObj = trim ? [] : [null];
-                    expect(r.data[0][1]).toEqual([['kid'], 'string', ...nonObj]);
+                    expect(r.schema).toEqual([['name', { kids: [['name']] }]]);
+                    if (trim) {
+                        expect(r.data).toEqual([['x', [['kid'], 'string']]]);
+                    } else {
+                        expect(r.data).toEqual([['x', [['kid'], 'string', null]]]);
+                    }
+                    const decompressed = decompress(r);
+                    expect(decompressed[0].name).toBe('x');
+                    expect(decompressed[0].kids[0]).toEqual({ name: 'kid' });
+                    const str = stringify(r);
+                    expect(parse(str)).toEqual(r);
                 });
 
                 test('原数组含数字元素（typeof obj!=="object" 各分支）', () => {
                     const src = [42, { name: 'a' }, true, { name: 'b' }];
                     const r = compress(src, copt);
-                    expect(r.schema[0]).toEqual(['name']);
-                    // 数字/布尔不是对象 → buildRow 返回 [null]
-                    const nonObj = trim ? [] : [null];
-                    expect(r.data[0]).toEqual(42);
-                    expect(r.data[1]).toEqual(['a']);
-                    expect(r.data[2]).toEqual(true);
-                    expect(r.data[3]).toEqual(['b']);
+                    expect(r.schema).toEqual([['name']]);
+                    expect(r.data).toEqual([42, ['a'], true, ['b']]);
+                    expect(decompress(r)).toEqual([42, { name: 'a' }, true, { name: 'b' }]);
+                    const str = stringify(r);
+                    expect(parse(str)).toEqual(r);
                 });
 
                 test('getValueKind：数组首元素也是数组 → primitive-array', () => {
                     const src = [{ name: 'x', matrix: [[1, 2], [3, 4]] }];
                     const r = compress(src, copt);
-                    expect(r.schema[0]).toEqual(['name', 'matrix']);
-                    expect(r.data[0]).toEqual(['x', [[1, 2], [3, 4]]]);
+                    expect(r.schema).toEqual([['name', 'matrix']]);
+                    expect(r.data).toEqual([['x', [[1, 2], [3, 4]]]]);
                     expect(decompress(r)).toEqual(src);
+                    const str = stringify(r);
+                    expect(parse(str)).toEqual(r);
+                    expect(decompress(parse(str))).toEqual(src);
                 });
 
                 test('普通原始类型数组 [1,2,3] 不拆解', () => {
                     const src = [{ name: 'x', scores: [1, 2, 3] }];
                     const r = compress(src, copt);
-                    expect(r.schema[0]).toEqual(['name', 'scores']);
-                    expect(r.data[0]).toEqual(['x', [1, 2, 3]]);
+                    expect(r.schema).toEqual([['name', 'scores']]);
+                    expect(r.data).toEqual([['x', [1, 2, 3]]]);
                     expect(decompress(r)).toEqual(src);
+                    const str = stringify(r);
+                    expect(parse(str)).toEqual(r);
+                    expect(decompress(parse(str))).toEqual(src);
                 });
 
                 test('非对象元素 + 嵌套 key（buildRow line 108 三元 false 分支）', () => {
                     const src = [42, { name: 'a', detail: { x: 1 } }];
                     const r = compress(src, copt);
-                    expect(r.schema[0]).toEqual(['name', { detail: ['x'] }]);
-                    // 42 不是对象 → 全 null
-                    expect(r.data[0]).toEqual(42);
-                    expect(r.data[1]).toEqual(['a', [1]]);
+                    expect(r.schema).toEqual([['name', { detail: ['x'] }]]);
+                    expect(r.data).toEqual([42, ['a', [1]]]);
+                    expect(decompress(r)).toEqual([42, { name: 'a', detail: { x: 1 } }]);
+                    const str = stringify(r);
+                    expect(parse(str)).toEqual(r);
                 });
 
                 test('非对象元素 + 对象数组（buildKeys line 73 typeof false 分支）', () => {
                     const src = [42, { items: [{ name: 'a' }] }];
                     const r = compress(src, copt);
-                    expect(r.schema[0]).toEqual([{ items: [['name']] }]);
-                    // 42 不是对象 → buildRow 返回 [null]
-                    expect(r.data[0]).toEqual(42);
-                    expect(r.data[1]).toEqual([[['a']]]);
+                    expect(r.schema).toEqual([[{ items: [['name']] }]]);
+                    expect(r.data).toEqual([42, [[['a']]]]);
+                    expect(decompress(r)).toEqual([42, { items: [{ name: 'a' }] }]);
+                    const str = stringify(r);
+                    expect(parse(str)).toEqual(r);
                 });
 
                 test('字段值为 null 且 repValue 为 object-array（line 75 Array.isArray false 分支）', () => {
                     const src = [
-                        { items: [{ name: 'a' }] },   // items 是 object-array
-                        { items: null }                // items 为 null → !Array.isArray
+                        { items: [{ name: 'a' }] },
+                        { items: null }
                     ];
                     const r = compress(src, copt);
-                    expect(r.schema[0]).toEqual([{ items: [['name']] }]);
-                    expect(r.data[0]).toEqual([[['a']]]);
-                    expect(r.data[1]).toEqual(trim ? [] : [null]);
+                    expect(r.schema).toEqual([[{ items: [['name']] }]]);
+                    if (trim) {
+                        expect(r.data).toEqual([[[['a']]], []]);
+                    } else {
+                        expect(r.data).toEqual([[[['a']]], [null]]);
+                    }
+                    expect(decompress(r)).toEqual([
+                        { items: [{ name: 'a' }] },
+                        { items: null }
+                    ]);
+                    const str = stringify(r);
+                    expect(parse(str)).toEqual(r);
+                    expect(decompress(parse(str))).toEqual([
+                        { items: [{ name: 'a' }] },
+                        { items: null }
+                    ]);
                 });
 
                 test('trimTrailingNulls 端到端', () => {
@@ -492,95 +940,152 @@ describe('compress / decompress', () => {
                         { name: '王五' },
                     ];
                     const r = compress(src, copt);
+                    expect(r.schema).toEqual([['name', 'age', { profile: ['avatar', 'bio', 'file'] }]]);
                     if (trim) {
-                        expect(r.data[0]).toEqual(['张三', 28, ['a.jpg', 'Hello']]);
-                        expect(r.data[1]).toEqual(['李四', 35, ['b.jpg']]);
-                        expect(r.data[2]).toEqual(['王五']);
+                        expect(r.data).toEqual([['张三', 28, ['a.jpg', 'Hello']], ['李四', 35, ['b.jpg']], ['王五']]);
                     } else {
-                        expect(r.data[0]).toEqual(['张三', 28, ['a.jpg', 'Hello', null]]);
-                        expect(r.data[1]).toEqual(['李四', 35, ['b.jpg', null, null]]);
-                        expect(r.data[2]).toEqual(['王五', null, null]);
+                        expect(r.data).toEqual([['张三', 28, ['a.jpg', 'Hello', null]], ['李四', 35, ['b.jpg', null, null]], ['王五', null, null]]);
                     }
                     expect(decompress(r)).toEqual([
                         { name: '张三', age: 28, profile: { avatar: 'a.jpg', bio: 'Hello', file: null } },
                         { name: '李四', age: 35, profile: { avatar: 'b.jpg', bio: null, file: null } },
                         { name: '王五', age: null, profile: null },
                     ]);
-                });
-
-            });
-
-            /* =========================================================
-               stringify / parse 联用 roundtrip
-               ========================================================= */
-            describe('stringify / parse 联用 roundtrip', () => {
-                test('样例1 往返：compress → stringify → parse → decompress', () => {
-                    const cmp = compress(src1, copt);
-                    const str = stringify(cmp);
-                    const restored = parse(str);
-                    expect(restored).toEqual(cmp);
-                    expect(decompress(restored)).toEqual(src1);
-                });
-
-                test('样例2 往返', () => {
-                    const cmp = compress(src2, copt);
-                    const str = stringify(cmp);
-                    const restored = parse(str);
-                    expect(restored).toEqual(cmp);
-                    expect(decompress(restored)).toEqual(src2);
-                });
-
-                test('场景3（缺失字段→null）往返', () => {
-                    const cmp = compress(src3, copt);
-                    const str = stringify(cmp);
-                    const restored = parse(str);
-                    expect(restored).toEqual(cmp);
-                    expect(decompress(restored)).toEqual(src3Decompressed);
-                });
-
-                test('场景4（嵌套子 key 不全）往返', () => {
-                    const cmp = compress(src4, copt);
-                    const str = stringify(cmp);
-                    const restored = parse(str);
-                    expect(restored).toEqual(cmp);
-                    expect(decompress(restored)).toEqual(src4Decompressed);
-                });
-
-                test('场景5（复杂嵌套+缺失成绩）往返', () => {
-                    const cmp = compress(src5, copt);
-                    const str = stringify(cmp);
-                    const restored = parse(str);
-                    expect(restored).toEqual(cmp);
-                    expect(decompress(restored)).toEqual(src5Decompressed);
-                });
-
-                test('trim 对 data 长度的影响', () => {
-                    const src = [
-                        { name: 'a', extra: null },
-                        { name: 'b', extra: null }
-                    ];
-                    const cmp = compress(src, copt);
-                    // trim=true: 尾部 null 被移除，每行长度=1
-                    // trim=false: 尾部 null 保留，每行长度=2
-                    if (trim) {
-                        expect(cmp.data[0].length).toBe(1);
-                        expect(cmp.data[1].length).toBe(1);
-                    } else {
-                        expect(cmp.data[0].length).toBe(2);
-                        expect(cmp.data[1].length).toBe(2);
-                    }
-                    // stringify 往返正确
-                    const str = stringify(cmp);
-                    expect(parse(str)).toEqual(cmp);
+                    const str = stringify(r);
+                    expect(parse(str)).toEqual(r);
                     expect(decompress(parse(str))).toEqual([
-                        { name: 'a', extra: null },
-                        { name: 'b', extra: null }
+                        { name: '张三', age: 28, profile: { avatar: 'a.jpg', bio: 'Hello', file: null } },
+                        { name: '李四', age: 35, profile: { avatar: 'b.jpg', bio: null, file: null } },
+                        { name: '王五', age: null, profile: null },
                     ]);
                 });
+
+                test('数组的数组含原始值子数组', () => {
+                    const src = [[1, 2], [{ a: 1 }]];
+                    const r = compress(src, copt);
+                    expect(r.schema).toEqual([[['a']]]);
+                    expect(r.data).toEqual([[1, 2], [[1]]]);
+                    expect(decompress(r)).toEqual([[1, 2], [{ a: 1 }]]);
+                    const str = stringify(r);
+                    expect(parse(str)).toEqual(r);
+                    expect(decompress(parse(str))).toEqual([[1, 2], [{ a: 1 }]]);
+                });
+
+                test('数组的数组含不同 key 对象（mergeSchemas 不同 key 合并）', () => {
+                    const src = [[{ a: 1, b: 2 }], [{ c: 3 }]];
+                    const r = compress(src, copt);
+                    expect(r.schema).toEqual([[['a', 'b', 'c']]]);
+                    if (trim) {
+                        expect(r.data).toEqual([[[1, 2]], [[null, null, 3]]]);
+                    } else {
+                        expect(r.data).toEqual([[[1, 2, null]], [[null, null, 3]]]);
+                    }
+                    expect(decompress(r)).toEqual([[{ a: 1, b: 2, c: null }], [{ a: null, b: null, c: 3 }]]);
+                    const str = stringify(r);
+                    expect(parse(str)).toEqual(r);
+                });
+
+                test('数组的数组混合含对象和原始值（mergeSchemas s2=undefined 分支）', () => {
+                    const src = [{ matrix: [[{ a: 1 }]] }, { matrix: [[1, 2]] }];
+                    const r = compress(src, copt);
+                    expect(r.schema).toEqual([[{ matrix: [[['a']]] }]]);
+                    expect(r.data).toEqual([[[[[1]]]], [[[1, 2]]]]);
+                    expect(decompress(r)).toEqual([{ matrix: [[{ a: 1 }]] }, { matrix: [[1, 2]] }]);
+                    const str = stringify(r);
+                    expect(parse(str)).toEqual(r);
+                });
+
+                test('数组的数组含空子数组（inferSchema 空数组分支）', () => {
+                    const src = [[{ a: 1 }], []];
+                    const r = compress(src, copt);
+                    expect(r.schema).toEqual([[['a']]]);
+                    expect(r.data).toEqual([[[1]], []]);
+                    expect(decompress(r)).toEqual([[{ a: 1 }], []]);
+                    const str = stringify(r);
+                    expect(parse(str)).toEqual(r);
+                });
+
+                test('数组的数组含不同嵌套 key 对象（mergeSchemas 对象 fieldDef 合并）', () => {
+                    const src = [[{ a: { x: 1 } }], [{ b: { y: 2 } }]];
+                    const r = compress(src, copt);
+                    expect(r.schema).toEqual([[[{ a: ['x'] }, { b: ['y'] }]]]);
+                    if (trim) {
+                        expect(r.data).toEqual([[[[1]]], [[null, [2]]]]);
+                    } else {
+                        expect(r.data).toEqual([[[[1], null]], [[null, [2]]]]);
+                    }
+                    expect(decompress(r)).toEqual([[{ a: { x: 1 }, b: null }], [{ a: null, b: { y: 2 } }]]);
+                    const str = stringify(r);
+                    expect(parse(str)).toEqual(r);
+                });
+
+                test('对象数组字段含空数组值（compressWithSchema 数组值分支）', () => {
+                    const src = [{ items: [{ name: 'a' }] }, { items: [] }];
+                    const r = compress(src, copt);
+                    expect(r.schema).toEqual([[{ items: [['name']] }]]);
+                    expect(r.data).toEqual([[[['a']]], [[]]]);
+                    expect(decompress(r)).toEqual([{ items: [{ name: 'a' }] }, { items: [] }]);
+                    const str = stringify(r);
+                    expect(parse(str)).toEqual(r);
+                });
+
+                test('对象数组字段含非数组值（Array.isArray(v) false 分支）', () => {
+                    const src = [{ items: [{ name: 'a' }] }, { items: 'string' }];
+                    const r = compress(src, copt);
+                    expect(r.schema).toEqual([[{ items: [['name']] }]]);
+                    if (trim) {
+                        expect(r.data).toEqual([[[['a']]], []]);
+                    } else {
+                        expect(r.data).toEqual([[[['a']]], [null]]);
+                    }
+                    expect(decompress(r)).toEqual([{ items: [{ name: 'a' }] }, { items: null }]);
+                    const str = stringify(r);
+                    expect(parse(str)).toEqual(r);
+                });
+
+                test('数组的数组字段含非数组值（array-of-arrays Array.isArray(v) false 分支）', () => {
+                    const src = [{ matrix: [[{ a: 1 }]] }, { matrix: 'string' }];
+                    const r = compress(src, copt);
+                    expect(r.schema).toEqual([[{ matrix: [[['a']]] }]]);
+                    if (trim) {
+                        expect(r.data).toEqual([[[[[1]]]], []]);
+                    } else {
+                        expect(r.data).toEqual([[[[[1]]]], [null]]);
+                    }
+                    expect(decompress(r)).toEqual([{ matrix: [[{ a: 1 }]] }, { matrix: null }]);
+                    const str = stringify(r);
+                    expect(parse(str)).toEqual(r);
+                });
+
             });
 
         }); // end [label] describe
     }); // end forEach
+
+    // line 285: decompressWithSchema 中 fieldDef 既非 string 也非 object → continue
+    describe('decompress 特殊 schema', () => {
+        test('schema 含非字符串非对象元素 → 跳过', () => {
+            const r = decompress({ schema: [1, 'name'], data: [42, 'test'] });
+            expect(r).toEqual({ name: 'test' });
+        });
+
+        test('decompress(null) → null', () => {
+            expect(decompress(null)).toBeNull();
+        });
+
+        test('decompress([]) → []', () => {
+            expect(decompress([])).toEqual([]);
+        });
+
+        test('decompress 无 data 属性的对象 → 原样返回', () => {
+            expect(decompress({ foo: 1 })).toEqual({ foo: 1 });
+        });
+
+        test('decompress 非对象值 → 原样返回', () => {
+            expect(decompress('hello')).toBe('hello');
+            expect(decompress(42)).toBe(42);
+        });
+    });
 
     /* =========================================================
        stringify / parse — 省略 null 文本化 与 还原

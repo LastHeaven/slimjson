@@ -13,7 +13,6 @@
  */
 function mergeSchemas(s1, s2) {
     if (!Array.isArray(s1) || !Array.isArray(s2)) return s1;
-
     const first1 = s1[0];
     const first2 = s2[0];
 
@@ -40,12 +39,7 @@ function mergeSchemas(s1, s2) {
     }
 
     // 两者都是数组（不是对象 schema）→ 递归合并第一个元素
-    if (Array.isArray(first1) && Array.isArray(first2)) {
-        return [mergeSchemas(first1, first2)];
-    }
-
-    // 其他情况（原始值数组或类型不匹配）→ 取第一个
-    return s1;
+    return [mergeSchemas(first1, first2)];
 }
 
 /**
@@ -76,12 +70,10 @@ function inferSchema(value) {
             return [inferObjectSchema(objects)];
         }
         // 原始值数组 - 不压缩，由父级处理
-        return undefined;
+        return;
     }
-    if (typeof value === 'object' && value !== null) {
-        return inferObjectSchema([value]);
-    }
-    return undefined;
+    // value 是单个对象
+    return inferObjectSchema([value]);
 }
 
 /**
@@ -106,7 +98,7 @@ function inferObjectSchema(objects) {
     }
 
     return keyOrder.map(key => {
-        const values = keyValues.get(key) || [];
+        const values = keyValues.get(key);
         if (values.length === 0) return key;
 
         const sample = values[0];
@@ -147,15 +139,12 @@ function inferObjectSchema(objects) {
                 for (const v of values) {
                     if (Array.isArray(v)) {
                         const s = inferSchema(v);
-                        if (s) {
-                            // inferSchema 返回 [innerSchema]，取 innerSchema 用于合并
-                            const inner = Array.isArray(s) && s.length === 1 ? s[0] : s;
-                            merged = merged ? mergeSchemas(merged, inner) : inner;
-                        }
+                        const inner = s[0];
+                        merged = merged ? mergeSchemas(merged, inner) : inner;
                     }
                 }
                 // 再包一层 [] 表示"数组的数组"
-                return { [key]: [merged || inferSchema(sample[0])] };
+                return { [key]: [merged] };
             }
 
             // 原始值数组（如 ["张三","李四"]）→ 不压缩，直接用 key 名
@@ -180,31 +169,21 @@ function compressWithSchema(value, schema) {
         return value.map(item => compressWithSchema(item, inner));
     }
 
-    // schema 包含 undefined → 原始值数组，不压缩
-    if (Array.isArray(schema) && schema.some(s => s === undefined || s === null)) {
-        return value;
-    }
-
     // schema 是数组（对象 schema）→ 值是对象
-    if (Array.isArray(schema)) {
-        if (Array.isArray(value)) return value.length === 0 ? [] : null;
-        if (!value || typeof value !== 'object') return value;
-        return schema.map(fieldDef => {
-            let key, valueSchema;
-            if (typeof fieldDef === 'string') {
-                key = fieldDef;
-                valueSchema = undefined;
-            } else {
-                key = Object.keys(fieldDef)[0];
-                valueSchema = fieldDef[key];
-            }
-            const val = value[key];
-            if (val == null) return null;
-            return compressWithSchema(val, valueSchema);
-        });
-    }
-
-    return value;
+    if (!value || typeof value !== 'object') return value;
+    return schema.map(fieldDef => {
+        let key, valueSchema;
+        if (typeof fieldDef === 'string') {
+            key = fieldDef;
+            valueSchema = undefined;
+        } else {
+            key = Object.keys(fieldDef)[0];
+            valueSchema = fieldDef[key];
+        }
+        const val = value[key];
+        if (val == null) return null;
+        return compressWithSchema(val, valueSchema);
+    });
 }
 
 /**
@@ -257,41 +236,32 @@ function decompressWithSchema(data, schema) {
 
     // schema 是 [innerSchema] → 还原为数组
     if (Array.isArray(schema) && schema.length === 1 && Array.isArray(schema[0])) {
-        if (!Array.isArray(data)) return data;
         const inner = schema[0];
         return data.map(item => decompressWithSchema(item, inner));
     }
 
-    // schema 是数组
-    if (Array.isArray(schema)) {
-        // schema 包含 undefined 元素 → 原始值数组，不压缩
-        if (schema.some(s => s === undefined || s === null)) return data;
+    // 原始值（混合数组中的原始元素）→ 直接返回
+    if (typeof data !== 'object') return data;
 
-        // 原始值（混合数组中的原始元素）→ 直接返回
-        if (typeof data !== 'object' || data === null) return data;
-
-        // 对象 schema → 还原为对象
-        const obj = {};
-        for (let i = 0; i < schema.length; i++) {
-            const fieldDef = schema[i];
-            let key, valueSchema;
-            if (typeof fieldDef === 'string') {
-                key = fieldDef;
-                valueSchema = undefined;
-            } else if (typeof fieldDef === 'object' && fieldDef !== null) {
-                key = Object.keys(fieldDef)[0];
-                valueSchema = fieldDef[key];
-            } else {
-                continue;
-            }
-            const val = data[i];
-            if (val === undefined) { obj[key] = null; continue; }
-            obj[key] = decompressWithSchema(val, valueSchema);
+    // 对象 schema → 还原为对象
+    const obj = {};
+    for (let i = 0; i < schema.length; i++) {
+        const fieldDef = schema[i];
+        let key, valueSchema;
+        if (typeof fieldDef === 'string') {
+            key = fieldDef;
+            valueSchema = undefined;
+        } else if (typeof fieldDef === 'object' && fieldDef !== null) {
+            key = Object.keys(fieldDef)[0];
+            valueSchema = fieldDef[key];
+        } else {
+            continue;
         }
-        return obj;
+        const val = data[i];
+        if (val === undefined) { obj[key] = null; continue; }
+        obj[key] = decompressWithSchema(val, valueSchema);
     }
-
-    return data;
+    return obj;
 }
 
 /**
@@ -494,8 +464,7 @@ function parse(text) {
       skipWs();
       if (text[pos] !== ':') error('Expected :');
       pos++;
-      const val = parseValue();
-      obj[key] = val;
+      obj[key] = parseValue();
       skipWs();
       if (text[pos] === '}') { pos++; return obj; }
       if (text[pos] === ',') { pos++; continue; }

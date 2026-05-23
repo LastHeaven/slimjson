@@ -143,4 +143,5 @@ vite.config.ts.timestamp-*
 .vite/
 
 .idea
+.claude
 package-lock.json
