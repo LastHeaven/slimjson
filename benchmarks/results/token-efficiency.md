@@ -14,7 +14,7 @@ Datasets with nested or semi-uniform structures. CSV excluded as it cannot prope
 
 📃 Semi-uniform event logs  ┊  Tabular: 50%
    │
-   slimjson            ██████████░░░░░░░░░░    91,630 tokens
+   slimjson            ██████████░░░░░░░░░░    91,629 tokens
    ├─ vs JSON          (−49.4%)               181,141 tokens
    ├─ vs JSON compact  (−28.7%)               128,480 tokens
    ├─ vs TOON          (−40.5%)               154,032 tokens
@@ -31,7 +31,7 @@ Datasets with nested or semi-uniform structures. CSV excluded as it cannot prope
    └─ vs XML           (−45.1%)                   997 tokens
 
 ──────────────────────────────────── Total ────────────────────────────────────
-   slimjson            █████████░░░░░░░░░░░   138,410 tokens
+   slimjson            █████████░░░░░░░░░░░   138,409 tokens
    ├─ vs JSON          (−52.5%)               291,620 tokens
    ├─ vs JSON compact  (−30.3%)               198,560 tokens
    ├─ vs TOON          (−39.3%)               227,896 tokens
@@ -47,19 +47,19 @@ Datasets with flat tabular structures where CSV is applicable.
 👥 Uniform employee records  ┊  Tabular: 100%
    │
    CSV                 ████████████████████    47,137 tokens
-   slimjson            ████████████████████    47,067 tokens   (-0.1% vs CSV)
+   slimjson            ████████████████████    47,065 tokens   (-0.2% vs CSV)
    ├─ vs JSON          (−63.0%)               127,050 tokens
    ├─ vs JSON compact  (−40.5%)                79,046 tokens
    ├─ vs TOON          (−5.8%)                 49,966 tokens
-   ├─ vs YAML          (−52.9%)               100,033 tokens
+   ├─ vs YAML          (−53.0%)               100,033 tokens
    └─ vs XML           (−67.9%)               146,596 tokens
 
 📈 Time-series analytics data  ┊  Tabular: 100%
    │
    CSV                 ███████████████████░     8,392 tokens
-   slimjson            ████████████████████     8,767 tokens   (+4.5% vs CSV)
+   slimjson            ████████████████████     8,765 tokens   (+4.4% vs CSV)
    ├─ vs JSON          (−60.6%)                22,254 tokens
-   ├─ vs JSON compact  (−38.3%)                14,220 tokens
+   ├─ vs JSON compact  (−38.4%)                14,220 tokens
    ├─ vs TOON          (−3.9%)                  9,124 tokens
    ├─ vs YAML          (−50.9%)                17,867 tokens
    └─ vs XML           (−67.1%)                26,625 tokens
@@ -67,8 +67,8 @@ Datasets with flat tabular structures where CSV is applicable.
 ⭐ Top 100 GitHub repositories  ┊  Tabular: 100%
    │
    CSV                 ████████████████████     8,512 tokens
-   slimjson            ████████████████████     8,550 tokens   (+0.4% vs CSV)
-   ├─ vs JSON          (−43.5%)                15,144 tokens
+   slimjson            ████████████████████     8,548 tokens   (+0.4% vs CSV)
+   ├─ vs JSON          (−43.6%)                15,144 tokens
    ├─ vs JSON compact  (−25.4%)                11,454 tokens
    ├─ vs TOON          (−2.2%)                  8,744 tokens
    ├─ vs YAML          (−34.9%)                13,128 tokens
@@ -76,8 +76,8 @@ Datasets with flat tabular structures where CSV is applicable.
 
 ──────────────────────────────────── Total ────────────────────────────────────
    CSV                 ████████████████████    64,041 tokens
-   slimjson            ████████████████████    64,384 tokens   (+0.5% vs CSV)
-   ├─ vs JSON          (−60.8%)               164,448 tokens
+   slimjson            ████████████████████    64,378 tokens   (+0.5% vs CSV)
+   ├─ vs JSON          (−60.9%)               164,448 tokens
    ├─ vs JSON compact  (−38.5%)               104,720 tokens
    ├─ vs TOON          (−5.1%)                 67,834 tokens
    ├─ vs YAML          (−50.9%)               131,028 tokens
@@ -89,12 +89,12 @@ Datasets with flat tabular structures where CSV is applicable.
 
 #### 📈 Time-series analytics data
 
-**Savings:** 13,487 tokens (60.6% reduction vs JSON)
+**Savings:** 13,489 tokens (60.6% reduction vs JSON)
 
-**slimjson** (8,767 tokens):
+**slimjson** (8,765 tokens):
 
 ```
-{keys:[{metrics:[date,views,clicks,conversions,revenue,bounceRate]}],rows:[[[["2025-01-01",4369,278,22,2108.75,0.48],["2025-01-02",5958,193,27,7353.88,0.61],["2025-01-03",6958,349,43,5512.87,0.41],["2025-01-04",5020,299,36,7186.2,0.42],["2025-01-05",4158,110,15,3849.04,0.35]]]]}
+{schema:[{metrics:[[date,views,clicks,conversions,revenue,bounceRate]]}],data:[[["2025-01-01",4369,278,22,2108.75,0.48],["2025-01-02",5958,193,27,7353.88,0.61],["2025-01-03",6958,349,43,5512.87,0.41],["2025-01-04",5020,299,36,7186.2,0.42],["2025-01-05",4158,110,15,3849.04,0.35]]]}
 ```
 
 **JSON** (22,254 tokens):
@@ -150,12 +150,12 @@ Datasets with flat tabular structures where CSV is applicable.
 
 #### ⭐ Top 100 GitHub repositories
 
-**Savings:** 6,594 tokens (43.5% reduction vs JSON)
+**Savings:** 6,596 tokens (43.6% reduction vs JSON)
 
-**slimjson** (8,550 tokens):
+**slimjson** (8,548 tokens):
 
 ```
-{keys:[{repositories:[id,name,repo,description,createdAt,updatedAt,pushedAt,stars,watchers,forks,defaultBranch]}],rows:[[[[28457823,freeCodeCamp,freeCodeCamp/freeCodeCamp,"freeCodeCamp.org's open-source codebase and curriculum. Learn math, programming,…","2014-12-24T17:49:19Z","2025-10-28T11:58:08Z","2025-10-28T10:17:16Z",430886,8583,42146,main],[132750724,build-your-own-x,codecrafters-io/build-your-own-x,"Master programming by recreating your favorite technologies from scratch.","2018-05-09T12:03:18Z","2025-10-28T12:37:11Z","2025-10-10T18:45:01Z",430877,6332,40453,master],[21737465,awesome,sindresorhus/awesome,"😎 Awesome lists about all kinds of interesting topics","2014-07-11T13:42:37Z","2025-10-28T12:40:21Z","2025-10-27T17:57:31Z",410052,8017,32029,main]]]]}
+{schema:[{repositories:[[id,name,repo,description,createdAt,updatedAt,pushedAt,stars,watchers,forks,defaultBranch]]}],data:[[[28457823,freeCodeCamp,freeCodeCamp/freeCodeCamp,"freeCodeCamp.org's open-source codebase and curriculum. Learn math, programming,…","2014-12-24T17:49:19Z","2025-10-28T11:58:08Z","2025-10-28T10:17:16Z",430886,8583,42146,main],[132750724,build-your-own-x,codecrafters-io/build-your-own-x,"Master programming by recreating your favorite technologies from scratch.","2018-05-09T12:03:18Z","2025-10-28T12:37:11Z","2025-10-10T18:45:01Z",430877,6332,40453,master],[21737465,awesome,sindresorhus/awesome,"😎 Awesome lists about all kinds of interesting topics","2014-07-11T13:42:37Z","2025-10-28T12:40:21Z","2025-10-27T17:57:31Z",410052,8017,32029,main]]]}
 ```
 
 **JSON** (15,144 tokens):

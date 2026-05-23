@@ -43,6 +43,7 @@ Tests how well LLMs can answer questions about data in different formats (slimjs
    ```js
    export const models = [
       deepseek.chat('deepseek-v4-flash'),
+      mimo.chat('mimo-v2.5-pro')
    ]
    ```
 2. Duplicate `.env.example` to `.env` and add your API keys:

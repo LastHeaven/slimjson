@@ -7,8 +7,14 @@ const deepseek = createOpenAI({
   apiKey: process.env.DEEPSEEK_API_KEY,
 })
 
+const mimo = createOpenAI({
+    baseURL: 'https://token-plan-cn.xiaomimimo.com/v1',
+    apiKey: process.env.MIMO_TOKEN_PLAN_API_KEY,
+})
+
 export const models = [
   deepseek.chat('deepseek-v4-flash'),
+  mimo.chat('mimo-v2.5-pro')
 ]
 
 export const PRIMERS = {

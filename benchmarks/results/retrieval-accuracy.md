@@ -1,4 +1,4 @@
-Benchmarks test LLM comprehension across different input formats using 209 data retrieval questions on 1 model.
+Benchmarks test LLM comprehension across different input formats using 209 data retrieval questions on 2 models.
 
 <details>
 <summary><strong>Show Dataset Catalog</strong></summary>
@@ -36,51 +36,60 @@ Benchmarks test LLM comprehension across different input formats using 209 data 
 Each format ranked by efficiency (accuracy percentage per 1,000 tokens):
 
 ```
-slimjson       ████████████████████   44.4 acc%/1K tok  │  94.7% acc  │  2,134 tokens
-TOON           ███████████████░░░░░   34.0 acc%/1K tok  │  92.8% acc  │  2,734 tokens
+slimjson       ████████████████████   44.3 acc%/1K tok  │  94.5% acc  │  2,133 tokens
+TOON           ███████████████░░░░░   33.8 acc%/1K tok  │  92.3% acc  │  2,734 tokens
 JSON compact   ██████████████░░░░░░   31.0 acc%/1K tok  │  95.2% acc  │  3,072 tokens
-YAML           ███████████░░░░░░░░░   25.4 acc%/1K tok  │  94.3% acc  │  3,716 tokens
-JSON           ██████████░░░░░░░░░░   21.1 acc%/1K tok  │  95.7% acc  │  4,538 tokens
-XML            ████████░░░░░░░░░░░░   18.5 acc%/1K tok  │  95.7% acc  │  5,162 tokens
+YAML           ███████████░░░░░░░░░   24.9 acc%/1K tok  │  92.3% acc  │  3,716 tokens
+JSON           █████████░░░░░░░░░░░   20.3 acc%/1K tok  │  92.3% acc  │  4,538 tokens
+XML            ████████░░░░░░░░░░░░   18.1 acc%/1K tok  │  93.3% acc  │  5,162 tokens
 ```
 
 *Efficiency score = (Accuracy % ÷ Tokens) × 1,000. Higher is better.*
 
 > [!TIP]
-> slimjson achieves **94.7%** accuracy (vs JSON's 95.7%) while using **53.0% fewer tokens**.
+> slimjson achieves **94.5%** accuracy (vs JSON's 92.3%) while using **53.0% fewer tokens**.
 
 **Note on CSV:** Excluded from ranking as it only supports 109 of 209 questions (flat tabular data only). While CSV is highly token-efficient for simple tabular data, it cannot represent nested structures that other formats handle.
 
 #### Per-Model Accuracy
 
-Accuracy across 1 LLM on 209 data retrieval questions:
+Accuracy across 2 LLMs on 209 data retrieval questions:
 
 ```
 deepseek-v4-flash
-  JSON           ███████████████████░    95.7% (200/209)
   XML            ███████████████████░    95.7% (200/209)
+  JSON           ███████████████████░    95.7% (200/209)
   JSON compact   ███████████████████░    95.2% (199/209)
-→ slimjson       ███████████████████░    94.7% (198/209)
   YAML           ███████████████████░    94.3% (197/209)
+→ slimjson       ███████████████████░    93.3% (195/209)
   TOON           ███████████████████░    92.8% (194/209)
   CSV            ██████████████████░░    91.7% (100/109)
+
+mimo-v2.5-pro
+→ slimjson       ███████████████████░    95.7% (200/209)
+  JSON compact   ███████████████████░    95.2% (199/209)
+  TOON           ██████████████████░░    91.9% (192/209)
+  XML            ██████████████████░░    90.9% (190/209)
+  YAML           ██████████████████░░    90.4% (189/209)
+  JSON           ██████████████████░░    89.0% (186/209)
+  CSV            ██████████████████░░    88.1% (96/109)
 ```
 
 > [!TIP]
-> slimjson achieves **94.7% accuracy** (vs JSON's 95.7%) while using **53.0% fewer tokens** on these datasets.
+> slimjson achieves **94.5% accuracy** (vs JSON's 92.3%) while using **53.0% fewer tokens** on these datasets.
 
 <details>
 <summary><strong>Performance by dataset, model, and question type</strong></summary>
 
 #### Performance by Question Type
 
-| Question Type | JSON | XML | JSON compact | slimjson | YAML | TOON | CSV |
+| Question Type | JSON compact | slimjson | XML | JSON | TOON | YAML | CSV |
 | ------------- | ---- | ---- | ---- | ---- | ---- | ---- | ---- |
-| Field Retrieval | 98.5% | 97.1% | 98.5% | 95.6% | 97.1% | 91.2% | 96.9% |
-| Aggregation | 98.4% | 96.8% | 95.2% | 95.2% | 93.7% | 95.2% | 86.2% |
-| Filtering | 97.9% | 97.9% | 100.0% | 100.0% | 100.0% | 100.0% | 96.3% |
-| Structure Awareness | 88.0% | 92.0% | 84.0% | 92.0% | 88.0% | 88.0% | 87.5% |
-| Structural Validation | 40.0% | 60.0% | 60.0% | 40.0% | 40.0% | 40.0% | 80.0% |
+| Field Retrieval | 99.3% | 98.5% | 98.5% | 99.3% | 95.6% | 98.5% | 98.4% |
+| Aggregation | 94.4% | 96.0% | 88.9% | 89.7% | 92.9% | 90.5% | 84.5% |
+| Filtering | 97.9% | 96.9% | 94.8% | 91.7% | 93.8% | 92.7% | 88.9% |
+| Structure Awareness | 88.0% | 88.0% | 90.0% | 90.0% | 90.0% | 88.0% | 87.5% |
+| Structural Validation | 60.0% | 30.0% | 80.0% | 50.0% | 40.0% | 50.0% | 80.0% |
 
 #### Performance by Dataset
 
@@ -88,130 +97,130 @@ deepseek-v4-flash
 
 | Format | Accuracy | Tokens | Correct/Total |
 | ------ | -------- | ------ | ------------- |
-| `slimjson` | 100.0% | 2,354 | 41/41 |
-| `csv` | 95.1% | 2,336 | 39/41 |
-| `toon` | 97.6% | 2,492 | 40/41 |
-| `json-compact` | 97.6% | 3,919 | 40/41 |
-| `yaml` | 100.0% | 4,982 | 41/41 |
-| `json-pretty` | 97.6% | 6,326 | 40/41 |
-| `xml` | 100.0% | 7,286 | 41/41 |
+| `slimjson` | 100.0% | 2,352 | 82/82 |
+| `toon` | 97.6% | 2,492 | 80/82 |
+| `csv` | 93.9% | 2,336 | 77/82 |
+| `json-compact` | 98.8% | 3,919 | 81/82 |
+| `yaml` | 98.8% | 4,982 | 81/82 |
+| `json-pretty` | 95.1% | 6,326 | 78/82 |
+| `xml` | 98.8% | 7,286 | 81/82 |
 
 ##### E-commerce orders with nested structures
 
 | Format | Accuracy | Tokens | Correct/Total |
 | ------ | -------- | ------ | ------------- |
-| `slimjson` | 100.0% | 4,616 | 41/41 |
-| `json-compact` | 97.6% | 6,875 | 40/41 |
-| `toon` | 95.1% | 7,299 | 39/41 |
-| `yaml` | 95.1% | 8,456 | 39/41 |
-| `json-pretty` | 95.1% | 10,842 | 39/41 |
-| `xml` | 95.1% | 12,180 | 39/41 |
+| `slimjson` | 100.0% | 4,616 | 82/82 |
+| `json-compact` | 98.8% | 6,875 | 81/82 |
+| `toon` | 97.6% | 7,299 | 80/82 |
+| `yaml` | 93.9% | 8,456 | 77/82 |
+| `json-pretty` | 93.9% | 10,842 | 77/82 |
+| `xml` | 95.1% | 12,180 | 78/82 |
 
 ##### Time-series analytics data
 
 | Format | Accuracy | Tokens | Correct/Total |
 | ------ | -------- | ------ | ------------- |
-| `slimjson` | 100.0% | 1,487 | 30/30 |
-| `csv` | 96.7% | 1,408 | 29/30 |
-| `toon` | 93.3% | 1,550 | 28/30 |
-| `json-compact` | 100.0% | 2,351 | 30/30 |
-| `yaml` | 96.7% | 2,951 | 29/30 |
-| `json-pretty` | 100.0% | 3,678 | 30/30 |
-| `xml` | 100.0% | 4,386 | 30/30 |
+| `slimjson` | 98.3% | 1,485 | 59/60 |
+| `csv` | 93.3% | 1,408 | 56/60 |
+| `toon` | 96.7% | 1,550 | 58/60 |
+| `json-compact` | 100.0% | 2,351 | 60/60 |
+| `yaml` | 96.7% | 2,951 | 58/60 |
+| `json-pretty` | 98.3% | 3,678 | 59/60 |
+| `xml` | 95.0% | 4,386 | 57/60 |
 
 ##### Top 100 GitHub repositories
 
 | Format | Accuracy | Tokens | Correct/Total |
 | ------ | -------- | ------ | ------------- |
-| `toon` | 87.9% | 8,779 | 29/33 |
-| `csv` | 84.8% | 8,527 | 28/33 |
-| `slimjson` | 81.8% | 8,574 | 27/33 |
-| `json-compact` | 90.9% | 11,464 | 30/33 |
-| `yaml` | 90.9% | 13,141 | 30/33 |
-| `json-pretty` | 90.9% | 15,157 | 30/33 |
-| `xml` | 87.9% | 17,105 | 29/33 |
+| `slimjson` | 86.4% | 8,572 | 57/66 |
+| `toon` | 86.4% | 8,779 | 57/66 |
+| `csv` | 83.3% | 8,527 | 55/66 |
+| `json-compact` | 90.9% | 11,464 | 60/66 |
+| `yaml` | 89.4% | 13,141 | 59/66 |
+| `json-pretty` | 87.9% | 15,157 | 58/66 |
+| `xml` | 84.8% | 17,105 | 56/66 |
 
 ##### Semi-uniform event logs
 
 | Format | Accuracy | Tokens | Correct/Total |
 | ------ | -------- | ------ | ------------- |
-| `slimjson` | 93.3% | 3,466 | 28/30 |
-| `json-compact` | 90.0% | 4,793 | 27/30 |
-| `yaml` | 93.3% | 5,798 | 28/30 |
-| `json-pretty` | 100.0% | 6,759 | 30/30 |
-| `toon` | 90.0% | 5,769 | 27/30 |
-| `xml` | 96.7% | 7,668 | 29/30 |
+| `slimjson` | 90.0% | 3,464 | 54/60 |
+| `json-compact` | 86.7% | 4,793 | 52/60 |
+| `toon` | 81.7% | 5,769 | 49/60 |
+| `yaml` | 81.7% | 5,798 | 49/60 |
+| `json-pretty` | 85.0% | 6,759 | 51/60 |
+| `xml` | 86.7% | 7,668 | 52/60 |
 
 ##### Deeply nested configuration
 
 | Format | Accuracy | Tokens | Correct/Total |
 | ------ | -------- | ------ | ------------- |
-| `json-compact` | 100.0% | 562 | 29/29 |
-| `slimjson` | 100.0% | 571 | 29/29 |
-| `toon` | 100.0% | 653 | 29/29 |
-| `yaml` | 96.6% | 675 | 28/29 |
-| `json-pretty` | 100.0% | 918 | 29/29 |
-| `xml` | 100.0% | 1,007 | 29/29 |
+| `json-compact` | 100.0% | 562 | 58/58 |
+| `slimjson` | 100.0% | 571 | 58/58 |
+| `toon` | 100.0% | 653 | 58/58 |
+| `yaml` | 98.3% | 675 | 57/58 |
+| `json-pretty` | 100.0% | 918 | 58/58 |
+| `xml` | 100.0% | 1,007 | 58/58 |
 
 ##### Valid complete dataset (control)
 
 | Format | Accuracy | Tokens | Correct/Total |
 | ------ | -------- | ------ | ------------- |
-| `slimjson` | 100.0% | 487 | 1/1 |
-| `toon` | 100.0% | 521 | 1/1 |
-| `json-compact` | 100.0% | 772 | 1/1 |
-| `yaml` | 100.0% | 984 | 1/1 |
-| `json-pretty` | 100.0% | 1,259 | 1/1 |
-| `xml` | 0.0% | 1,441 | 0/1 |
-| `csv` | 0.0% | 473 | 0/1 |
+| `slimjson` | 100.0% | 485 | 2/2 |
+| `toon` | 100.0% | 521 | 2/2 |
+| `json-compact` | 100.0% | 772 | 2/2 |
+| `yaml` | 100.0% | 984 | 2/2 |
+| `json-pretty` | 100.0% | 1,259 | 2/2 |
+| `xml` | 50.0% | 1,441 | 1/2 |
+| `csv` | 0.0% | 473 | 0/2 |
 
 ##### Array truncated: 3 rows removed from end
 
 | Format | Accuracy | Tokens | Correct/Total |
 | ------ | -------- | ------ | ------------- |
-| `csv` | 100.0% | 408 | 1/1 |
-| `json-pretty` | 0.0% | 1,075 | 0/1 |
-| `xml` | 0.0% | 1,229 | 0/1 |
-| `json-compact` | 0.0% | 660 | 0/1 |
-| `slimjson` | 0.0% | 423 | 0/1 |
-| `yaml` | 0.0% | 841 | 0/1 |
-| `toon` | 0.0% | 453 | 0/1 |
+| `csv` | 100.0% | 408 | 2/2 |
+| `xml` | 50.0% | 1,229 | 1/2 |
+| `json-compact` | 0.0% | 660 | 0/2 |
+| `slimjson` | 0.0% | 421 | 0/2 |
+| `json-pretty` | 0.0% | 1,075 | 0/2 |
+| `toon` | 0.0% | 453 | 0/2 |
+| `yaml` | 0.0% | 841 | 0/2 |
 
 ##### Extra rows added beyond declared length
 
 | Format | Accuracy | Tokens | Correct/Total |
 | ------ | -------- | ------ | ------------- |
-| `csv` | 100.0% | 547 | 1/1 |
-| `json-compact` | 100.0% | 892 | 1/1 |
-| `xml` | 100.0% | 1,663 | 1/1 |
-| `json-pretty` | 0.0% | 1,451 | 0/1 |
-| `slimjson` | 0.0% | 559 | 0/1 |
-| `yaml` | 0.0% | 1,135 | 0/1 |
-| `toon` | 0.0% | 598 | 0/1 |
+| `csv` | 100.0% | 547 | 2/2 |
+| `json-compact` | 100.0% | 892 | 2/2 |
+| `xml` | 100.0% | 1,663 | 2/2 |
+| `yaml` | 50.0% | 1,135 | 1/2 |
+| `json-pretty` | 50.0% | 1,451 | 1/2 |
+| `slimjson` | 0.0% | 557 | 0/2 |
+| `toon` | 0.0% | 598 | 0/2 |
 
 ##### Inconsistent field count (missing salary in row 10)
 
 | Format | Accuracy | Tokens | Correct/Total |
 | ------ | -------- | ------ | ------------- |
-| `csv` | 100.0% | 470 | 1/1 |
-| `json-compact` | 100.0% | 767 | 1/1 |
-| `yaml` | 100.0% | 977 | 1/1 |
-| `toon` | 100.0% | 1,000 | 1/1 |
-| `json-pretty` | 100.0% | 1,251 | 1/1 |
-| `xml` | 100.0% | 1,432 | 1/1 |
-| `slimjson` | 0.0% | 484 | 0/1 |
+| `csv` | 100.0% | 470 | 2/2 |
+| `json-compact` | 100.0% | 767 | 2/2 |
+| `yaml` | 100.0% | 977 | 2/2 |
+| `toon` | 100.0% | 1,000 | 2/2 |
+| `json-pretty` | 100.0% | 1,251 | 2/2 |
+| `xml` | 100.0% | 1,432 | 2/2 |
+| `slimjson` | 50.0% | 482 | 1/2 |
 
 ##### Missing required fields (no email in multiple rows)
 
 | Format | Accuracy | Tokens | Correct/Total |
 | ------ | -------- | ------ | ------------- |
-| `csv` | 100.0% | 337 | 1/1 |
-| `slimjson` | 100.0% | 456 | 1/1 |
-| `xml` | 100.0% | 1,386 | 1/1 |
-| `json-pretty` | 0.0% | 1,207 | 0/1 |
-| `json-compact` | 0.0% | 732 | 0/1 |
-| `yaml` | 0.0% | 941 | 0/1 |
-| `toon` | 0.0% | 964 | 0/1 |
+| `csv` | 100.0% | 337 | 2/2 |
+| `xml` | 100.0% | 1,386 | 2/2 |
+| `json-compact` | 0.0% | 732 | 0/2 |
+| `slimjson` | 0.0% | 454 | 0/2 |
+| `json-pretty` | 0.0% | 1,207 | 0/2 |
+| `toon` | 0.0% | 964 | 0/2 |
+| `yaml` | 0.0% | 941 | 0/2 |
 
 #### Performance by Model
 
@@ -219,13 +228,25 @@ deepseek-v4-flash
 
 | Format | Accuracy | Correct/Total |
 | ------ | -------- | ------------- |
-| `json-pretty` | 95.7% | 200/209 |
 | `xml` | 95.7% | 200/209 |
+| `json-pretty` | 95.7% | 200/209 |
 | `json-compact` | 95.2% | 199/209 |
-| `slimjson` | 94.7% | 198/209 |
 | `yaml` | 94.3% | 197/209 |
+| `slimjson` | 93.3% | 195/209 |
 | `toon` | 92.8% | 194/209 |
 | `csv` | 91.7% | 100/109 |
+
+##### mimo-v2.5-pro
+
+| Format | Accuracy | Correct/Total |
+| ------ | -------- | ------------- |
+| `slimjson` | 95.7% | 200/209 |
+| `json-compact` | 95.2% | 199/209 |
+| `toon` | 91.9% | 192/209 |
+| `xml` | 90.9% | 190/209 |
+| `yaml` | 90.4% | 189/209 |
+| `json-pretty` | 89.0% | 186/209 |
+| `csv` | 88.1% | 96/109 |
 
 </details>
 
@@ -284,13 +305,13 @@ Eleven datasets designed to test different structural patterns and validation ca
 
 #### Evaluation Process
 
-1. **Format conversion**: Each dataset is converted to all 7 formats (JSON, XML, JSON compact, slimjson, YAML, TOON, CSV).
+1. **Format conversion**: Each dataset is converted to all 7 formats (JSON compact, slimjson, XML, JSON, TOON, YAML, CSV).
 2. **Query LLM**: Each model receives formatted data + question in a prompt and extracts the answer.
 3. **Validate deterministically**: Answers are validated using type-aware comparison (e.g., `50000` = `$50,000`, `Engineering` = `engineering`, `2025-01-01` = `January 1, 2025`) without requiring an LLM judge.
 
 #### Models & Configuration
 
-- **Models tested**: `deepseek-v4-flash`
+- **Models tested**: `deepseek-v4-flash`, `mimo-v2.5-pro`
 - **Token counting**: Using `gpt-tokenizer` with `o200k_base` encoding (GPT-5 tokenizer)
 - **Temperature**: Not set (models use their defaults)
-- **Total evaluations**: 209 questions × 7 formats × 1 models = 1,463 LLM calls
+- **Total evaluations**: 209 questions × 7 formats × 2 models = 2,926 LLM calls

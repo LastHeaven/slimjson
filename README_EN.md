@@ -429,56 +429,65 @@ Flat tabular datasets where CSV is applicable.
 
 ## LLM Data Retrieval Accuracy
 
-Accuracy tested with 209 data retrieval questions across different input formats.
+Accuracy tested with 209 data retrieval questions across 2 LLMs on different input formats.
 
 #### Efficiency Ranking (Accuracy per 1K Tokens)
 
 ```
-slimjson       ████████████████████   44.4 acc%/1K tok  │  94.7% acc  │  2,134 tokens
-TOON           ███████████████░░░░░   34.0 acc%/1K tok  │  92.8% acc  │  2,734 tokens
+slimjson       ████████████████████   44.3 acc%/1K tok  │  94.5% acc  │  2,133 tokens
+TOON           ███████████████░░░░░   33.8 acc%/1K tok  │  92.3% acc  │  2,734 tokens
 JSON compact   ██████████████░░░░░░   31.0 acc%/1K tok  │  95.2% acc  │  3,072 tokens
-YAML           ███████████░░░░░░░░░   25.4 acc%/1K tok  │  94.3% acc  │  3,716 tokens
-JSON           ██████████░░░░░░░░░░   21.1 acc%/1K tok  │  95.7% acc  │  4,538 tokens
-XML            ████████░░░░░░░░░░░░   18.5 acc%/1K tok  │  95.7% acc  │  5,162 tokens
+YAML           ███████████░░░░░░░░░   24.9 acc%/1K tok  │  92.3% acc  │  3,716 tokens
+JSON           █████████░░░░░░░░░░░   20.3 acc%/1K tok  │  92.3% acc  │  4,538 tokens
+XML            ████████░░░░░░░░░░░░   18.1 acc%/1K tok  │  93.3% acc  │  5,162 tokens
 ```
 
 *Efficiency score = (Accuracy % ÷ Tokens) × 1,000. Higher is better.*
 
-> slimjson achieves **94.7%** accuracy (vs JSON's 95.7%) while using **53.0% fewer tokens**.
+> slimjson achieves **94.5%** accuracy (vs JSON's 92.3%) while using **53.0% fewer tokens**.
 
 #### Per-Model Accuracy
 
 ```
 deepseek-v4-flash
-  JSON           ███████████████████░    95.7% (200/209)
   XML            ███████████████████░    95.7% (200/209)
+  JSON           ███████████████████░    95.7% (200/209)
   JSON compact   ███████████████████░    95.2% (199/209)
-→ slimjson       ███████████████████░    94.7% (198/209)
   YAML           ███████████████████░    94.3% (197/209)
+→ slimjson       ███████████████████░    93.3% (195/209)
   TOON           ███████████████████░    92.8% (194/209)
   CSV            ██████████████████░░    91.7% (100/109)
+
+mimo-v2.5-pro
+→ slimjson       ███████████████████░    95.7% (200/209)
+  JSON compact   ███████████████████░    95.2% (199/209)
+  TOON           ██████████████████░░    91.9% (192/209)
+  XML            ██████████████████░░    90.9% (190/209)
+  YAML           ██████████████████░░    90.4% (189/209)
+  JSON           ██████████████████░░    89.0% (186/209)
+  CSV            ██████████████████░░    88.1% (96/109)
 ```
 
 #### Accuracy by Question Type
 
-| Question Type | JSON | XML | JSON compact | slimjson | YAML | TOON | CSV |
-|---------------|------|-----|-------------|----------|------|------|-----|
-| Field Retrieval | 98.5% | 97.1% | 98.5% | 95.6% | 97.1% | 91.2% | 96.9% |
-| Aggregation | 98.4% | 96.8% | 95.2% | 95.2% | 93.7% | 95.2% | 86.2% |
-| Filtering | 97.9% | 97.9% | 100.0% | 100.0% | 100.0% | 100.0% | 96.3% |
-| Structure Awareness | 88.0% | 92.0% | 84.0% | 92.0% | 88.0% | 88.0% | 87.5% |
-| Structural Validation | 40.0% | 60.0% | 60.0% | 40.0% | 40.0% | 40.0% | 80.0% |
+| Question Type | JSON compact | slimjson | XML | JSON | TOON | YAML | CSV |
+|---------------|-------------|----------|-----|------|------|------|-----|
+| Field Retrieval | 99.3% | 98.5% | 98.5% | 99.3% | 95.6% | 98.5% | 98.4% |
+| Aggregation | 94.4% | 96.0% | 88.9% | 89.7% | 92.9% | 90.5% | 84.5% |
+| Filtering | 97.9% | 96.9% | 94.8% | 91.7% | 93.8% | 92.7% | 88.9% |
+| Structure Awareness | 88.0% | 88.0% | 90.0% | 90.0% | 90.0% | 88.0% | 87.5% |
+| Structural Validation | 60.0% | 30.0% | 80.0% | 50.0% | 40.0% | 50.0% | 80.0% |
 
 #### Datasets Tested
 
-| Dataset | Rows | Structure | CSV Support |
-|---------|------|-----------|-------------|
-| Uniform employee records | 100 | uniform | ✓ |
-| E-commerce orders (nested) | 50 | nested | ✗ |
-| Time-series analytics data | 60 | uniform | ✓ |
-| Top 100 GitHub repositories | 100 | uniform | ✓ |
-| Semi-uniform event logs | 75 | semi-uniform | ✗ |
-| Deeply nested configuration | 11 | deep | ✗ |
+| Dataset | Rows | Structure | CSV Support | Tabular % |
+|---------|------|-----------|-------------|-----------|
+| Uniform employee records | 100 | uniform | ✓ | 100% |
+| E-commerce orders (nested) | 50 | nested | ✗ | 33% |
+| Time-series analytics data | 60 | uniform | ✓ | 100% |
+| Top 100 GitHub repositories | 100 | uniform | ✓ | 100% |
+| Semi-uniform event logs | 75 | semi-uniform | ✗ | 50% |
+| Deeply nested configuration | 11 | deep | ✗ | 0% |
 
 ## Development
 
