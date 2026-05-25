@@ -27,7 +27,7 @@ export const models = [
 
 export const PRIMERS = {
   'toon': 'TOON: Indentation-based. Arrays declare length and fields (e.g., items[N]{f1,f2}:). Rows use single delimiter. Values may be quoted.',
-  'slimjson': 'slimjson: Compact JSON-like format with structural compression. Uses abbreviated keys and minimized syntax while preserving full data fidelity.',
+  'slimjson': 'slimjson: Compact JSON-like format with structural compression.',
   'json-pretty': 'JSON: Strict JSON objects/arrays with repeated keys per row.',
   'json-compact': 'JSON (compact): Strict JSON without extra whitespace.',
   'yaml': 'YAML: Indentation-based key/value and lists (- items).',
