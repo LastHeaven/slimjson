@@ -1,6 +1,6 @@
 {
   "name": "slimjson",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "main": "compress.js",
   "exports": {
     ".": {
@@ -20,5 +20,18 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/LastHeaven/slimjson.git"
-  }
+  },
+  "keywords": [
+    "json",
+    "json-compress",
+    "json-compact",
+    "compression",
+    "serialization",
+    "array",
+    "object-array",
+    "token-efficiency",
+    "llm",
+    "minify",
+    "slim"
+  ]
 }
