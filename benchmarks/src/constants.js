@@ -13,6 +13,9 @@ export const DRY_RUN_LIMITS = {
 }
 
 export const MODEL_RPM_LIMITS = {
+  'deepseek-v4-flash': 50,
+  'nemotron-3-super-free': 40,
+  'big-pickle': 40,
 }
 
 export const FORMATTER_DISPLAY_NAMES = {
