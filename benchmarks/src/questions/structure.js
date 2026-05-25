@@ -227,7 +227,7 @@ export function generateStructureQuestions(
       .build(),
   )
 
-  const repoFields = 'id,name,repo,description,stars,watchers,forks,defaultBranch,createdAt,updatedAt,pushedAt'
+  const repoFields = 'id,name,repo,description,createdAt,updatedAt,pushedAt,stars,watchers,forks,defaultBranch'
   questions.push(
     new QuestionBuilder()
       .id(getId())
@@ -243,7 +243,7 @@ export function generateStructureQuestions(
     new QuestionBuilder()
       .id(getId())
       .prompt('What is the 7th field name for GitHub repositories?')
-      .groundTruth('forks')
+      .groundTruth('pushedAt')
       .type('structure-awareness')
       .dataset('github')
       .answerType('string')

@@ -36,18 +36,18 @@ Benchmarks test LLM comprehension across different input formats using 209 data 
 Each format ranked by efficiency (accuracy percentage per 1,000 tokens):
 
 ```
-slimjson       ████████████████████   44.3 acc%/1K tok  │  94.5% acc  │  2,133 tokens
-TOON           ███████████████░░░░░   33.8 acc%/1K tok  │  92.3% acc  │  2,734 tokens
-JSON compact   ██████████████░░░░░░   31.0 acc%/1K tok  │  95.2% acc  │  3,072 tokens
-YAML           ███████████░░░░░░░░░   24.9 acc%/1K tok  │  92.3% acc  │  3,716 tokens
-JSON           █████████░░░░░░░░░░░   20.3 acc%/1K tok  │  92.3% acc  │  4,538 tokens
-XML            ████████░░░░░░░░░░░░   18.1 acc%/1K tok  │  93.3% acc  │  5,162 tokens
+slimjson       ████████████████████   45.0 acc%/1K tok  │  95.9% acc  │  2,134 tokens
+TOON           ███████████████░░░░░   34.3 acc%/1K tok  │  93.8% acc  │  2,734 tokens
+JSON compact   ██████████████░░░░░░   31.5 acc%/1K tok  │  96.7% acc  │  3,072 tokens
+YAML           ███████████░░░░░░░░░   25.2 acc%/1K tok  │  93.8% acc  │  3,716 tokens
+JSON           █████████░░░░░░░░░░░   20.7 acc%/1K tok  │  93.8% acc  │  4,538 tokens
+XML            ████████░░░░░░░░░░░░   18.4 acc%/1K tok  │  94.7% acc  │  5,162 tokens
 ```
 
 *Efficiency score = (Accuracy % ÷ Tokens) × 1,000. Higher is better.*
 
 > [!TIP]
-> slimjson achieves **94.5%** accuracy (vs JSON's 92.3%) while using **53.0% fewer tokens**.
+> slimjson achieves **95.9%** accuracy (vs JSON's 93.8%) while using **53.0% fewer tokens**.
 
 **Note on CSV:** Excluded from ranking as it only supports 109 of 209 questions (flat tabular data only). While CSV is highly token-efficient for simple tabular data, it cannot represent nested structures that other formats handle.
 
@@ -57,26 +57,26 @@ Accuracy across 2 LLMs on 209 data retrieval questions:
 
 ```
 deepseek-v4-flash
-  XML            ███████████████████░    95.7% (200/209)
-  JSON           ███████████████████░    95.7% (200/209)
-  JSON compact   ███████████████████░    95.2% (199/209)
-  YAML           ███████████████████░    94.3% (197/209)
-→ slimjson       ███████████████████░    93.3% (195/209)
-  TOON           ███████████████████░    92.8% (194/209)
-  CSV            ██████████████████░░    91.7% (100/109)
+  XML            ███████████████████░    97.1% (203/209)
+  JSON           ███████████████████░    97.1% (203/209)
+  JSON compact   ███████████████████░    96.7% (202/209)
+  YAML           ███████████████████░    95.7% (200/209)
+→ slimjson       ███████████████████░    94.7% (198/209)
+  CSV            ███████████████████░    94.5% (103/109)
+  TOON           ███████████████████░    94.3% (197/209)
 
 mimo-v2.5-pro
-→ slimjson       ███████████████████░    95.7% (200/209)
-  JSON compact   ███████████████████░    95.2% (199/209)
-  TOON           ██████████████████░░    91.9% (192/209)
-  XML            ██████████████████░░    90.9% (190/209)
-  YAML           ██████████████████░░    90.4% (189/209)
-  JSON           ██████████████████░░    89.0% (186/209)
-  CSV            ██████████████████░░    88.1% (96/109)
+→ slimjson       ███████████████████░    97.1% (203/209)
+  JSON compact   ███████████████████░    96.7% (202/209)
+  TOON           ███████████████████░    93.3% (195/209)
+  XML            ██████████████████░░    92.3% (193/209)
+  YAML           ██████████████████░░    91.9% (192/209)
+  CSV            ██████████████████░░    90.8% (99/109)
+  JSON           ██████████████████░░    90.4% (189/209)
 ```
 
 > [!TIP]
-> slimjson achieves **94.5% accuracy** (vs JSON's 92.3%) while using **53.0% fewer tokens** on these datasets.
+> slimjson achieves **95.9% accuracy** (vs JSON's 93.8%) while using **53.0% fewer tokens** on these datasets.
 
 <details>
 <summary><strong>Performance by dataset, model, and question type</strong></summary>
@@ -86,9 +86,9 @@ mimo-v2.5-pro
 | Question Type | JSON compact | slimjson | XML | JSON | TOON | YAML | CSV |
 | ------------- | ---- | ---- | ---- | ---- | ---- | ---- | ---- |
 | Field Retrieval | 99.3% | 98.5% | 98.5% | 99.3% | 95.6% | 98.5% | 98.4% |
-| Aggregation | 94.4% | 96.0% | 88.9% | 89.7% | 92.9% | 90.5% | 84.5% |
+| Aggregation | 96.0% | 97.6% | 90.5% | 91.3% | 94.4% | 92.1% | 87.9% |
 | Filtering | 97.9% | 96.9% | 94.8% | 91.7% | 93.8% | 92.7% | 88.9% |
-| Structure Awareness | 88.0% | 88.0% | 90.0% | 90.0% | 90.0% | 88.0% | 87.5% |
+| Structure Awareness | 96.0% | 96.0% | 98.0% | 98.0% | 98.0% | 96.0% | 100.0% |
 | Structural Validation | 60.0% | 30.0% | 80.0% | 50.0% | 40.0% | 50.0% | 80.0% |
 
 #### Performance by Dataset
@@ -97,7 +97,7 @@ mimo-v2.5-pro
 
 | Format | Accuracy | Tokens | Correct/Total |
 | ------ | -------- | ------ | ------------- |
-| `slimjson` | 100.0% | 2,352 | 82/82 |
+| `slimjson` | 100.0% | 2,354 | 82/82 |
 | `toon` | 97.6% | 2,492 | 80/82 |
 | `csv` | 93.9% | 2,336 | 77/82 |
 | `json-compact` | 98.8% | 3,919 | 81/82 |
@@ -120,7 +120,7 @@ mimo-v2.5-pro
 
 | Format | Accuracy | Tokens | Correct/Total |
 | ------ | -------- | ------ | ------------- |
-| `slimjson` | 98.3% | 1,485 | 59/60 |
+| `slimjson` | 98.3% | 1,487 | 59/60 |
 | `csv` | 93.3% | 1,408 | 56/60 |
 | `toon` | 96.7% | 1,550 | 58/60 |
 | `json-compact` | 100.0% | 2,351 | 60/60 |
@@ -132,19 +132,19 @@ mimo-v2.5-pro
 
 | Format | Accuracy | Tokens | Correct/Total |
 | ------ | -------- | ------ | ------------- |
-| `slimjson` | 86.4% | 8,572 | 57/66 |
-| `toon` | 86.4% | 8,779 | 57/66 |
-| `csv` | 83.3% | 8,527 | 55/66 |
-| `json-compact` | 90.9% | 11,464 | 60/66 |
-| `yaml` | 89.4% | 13,141 | 59/66 |
-| `json-pretty` | 87.9% | 15,157 | 58/66 |
-| `xml` | 84.8% | 17,105 | 56/66 |
+| `slimjson` | 95.5% | 8,574 | 63/66 |
+| `toon` | 95.5% | 8,779 | 63/66 |
+| `csv` | 92.4% | 8,527 | 61/66 |
+| `json-compact` | 100.0% | 11,464 | 66/66 |
+| `yaml` | 98.5% | 13,141 | 65/66 |
+| `json-pretty` | 97.0% | 15,157 | 64/66 |
+| `xml` | 93.9% | 17,105 | 62/66 |
 
 ##### Semi-uniform event logs
 
 | Format | Accuracy | Tokens | Correct/Total |
 | ------ | -------- | ------ | ------------- |
-| `slimjson` | 90.0% | 3,464 | 54/60 |
+| `slimjson` | 90.0% | 3,466 | 54/60 |
 | `json-compact` | 86.7% | 4,793 | 52/60 |
 | `toon` | 81.7% | 5,769 | 49/60 |
 | `yaml` | 81.7% | 5,798 | 49/60 |
@@ -166,7 +166,7 @@ mimo-v2.5-pro
 
 | Format | Accuracy | Tokens | Correct/Total |
 | ------ | -------- | ------ | ------------- |
-| `slimjson` | 100.0% | 485 | 2/2 |
+| `slimjson` | 100.0% | 487 | 2/2 |
 | `toon` | 100.0% | 521 | 2/2 |
 | `json-compact` | 100.0% | 772 | 2/2 |
 | `yaml` | 100.0% | 984 | 2/2 |
@@ -181,7 +181,7 @@ mimo-v2.5-pro
 | `csv` | 100.0% | 408 | 2/2 |
 | `xml` | 50.0% | 1,229 | 1/2 |
 | `json-compact` | 0.0% | 660 | 0/2 |
-| `slimjson` | 0.0% | 421 | 0/2 |
+| `slimjson` | 0.0% | 423 | 0/2 |
 | `json-pretty` | 0.0% | 1,075 | 0/2 |
 | `toon` | 0.0% | 453 | 0/2 |
 | `yaml` | 0.0% | 841 | 0/2 |
@@ -195,7 +195,7 @@ mimo-v2.5-pro
 | `xml` | 100.0% | 1,663 | 2/2 |
 | `yaml` | 50.0% | 1,135 | 1/2 |
 | `json-pretty` | 50.0% | 1,451 | 1/2 |
-| `slimjson` | 0.0% | 557 | 0/2 |
+| `slimjson` | 0.0% | 559 | 0/2 |
 | `toon` | 0.0% | 598 | 0/2 |
 
 ##### Inconsistent field count (missing salary in row 10)
@@ -208,7 +208,7 @@ mimo-v2.5-pro
 | `toon` | 100.0% | 1,000 | 2/2 |
 | `json-pretty` | 100.0% | 1,251 | 2/2 |
 | `xml` | 100.0% | 1,432 | 2/2 |
-| `slimjson` | 50.0% | 482 | 1/2 |
+| `slimjson` | 50.0% | 484 | 1/2 |
 
 ##### Missing required fields (no email in multiple rows)
 
@@ -217,7 +217,7 @@ mimo-v2.5-pro
 | `csv` | 100.0% | 337 | 2/2 |
 | `xml` | 100.0% | 1,386 | 2/2 |
 | `json-compact` | 0.0% | 732 | 0/2 |
-| `slimjson` | 0.0% | 454 | 0/2 |
+| `slimjson` | 0.0% | 456 | 0/2 |
 | `json-pretty` | 0.0% | 1,207 | 0/2 |
 | `toon` | 0.0% | 964 | 0/2 |
 | `yaml` | 0.0% | 941 | 0/2 |
@@ -228,25 +228,25 @@ mimo-v2.5-pro
 
 | Format | Accuracy | Correct/Total |
 | ------ | -------- | ------------- |
-| `xml` | 95.7% | 200/209 |
-| `json-pretty` | 95.7% | 200/209 |
-| `json-compact` | 95.2% | 199/209 |
-| `yaml` | 94.3% | 197/209 |
-| `slimjson` | 93.3% | 195/209 |
-| `toon` | 92.8% | 194/209 |
-| `csv` | 91.7% | 100/109 |
+| `xml` | 97.1% | 203/209 |
+| `json-pretty` | 97.1% | 203/209 |
+| `json-compact` | 96.7% | 202/209 |
+| `yaml` | 95.7% | 200/209 |
+| `slimjson` | 94.7% | 198/209 |
+| `csv` | 94.5% | 103/109 |
+| `toon` | 94.3% | 197/209 |
 
 ##### mimo-v2.5-pro
 
 | Format | Accuracy | Correct/Total |
 | ------ | -------- | ------------- |
-| `slimjson` | 95.7% | 200/209 |
-| `json-compact` | 95.2% | 199/209 |
-| `toon` | 91.9% | 192/209 |
-| `xml` | 90.9% | 190/209 |
-| `yaml` | 90.4% | 189/209 |
-| `json-pretty` | 89.0% | 186/209 |
-| `csv` | 88.1% | 96/109 |
+| `slimjson` | 97.1% | 203/209 |
+| `json-compact` | 96.7% | 202/209 |
+| `toon` | 93.3% | 195/209 |
+| `xml` | 92.3% | 193/209 |
+| `yaml` | 91.9% | 192/209 |
+| `csv` | 90.8% | 99/109 |
+| `json-pretty` | 90.4% | 189/209 |
 
 </details>
 

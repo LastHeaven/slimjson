@@ -438,38 +438,38 @@ Accuracy tested with 209 data retrieval questions across 2 LLMs on different inp
 #### Efficiency Ranking (Accuracy per 1K Tokens)
 
 ```
-slimjson       ████████████████████   44.3 acc%/1K tok  │  94.5% acc  │  2,133 tokens
-TOON           ███████████████░░░░░   33.8 acc%/1K tok  │  92.3% acc  │  2,734 tokens
-JSON compact   ██████████████░░░░░░   31.0 acc%/1K tok  │  95.2% acc  │  3,072 tokens
-YAML           ███████████░░░░░░░░░   24.9 acc%/1K tok  │  92.3% acc  │  3,716 tokens
-JSON           █████████░░░░░░░░░░░   20.3 acc%/1K tok  │  92.3% acc  │  4,538 tokens
-XML            ████████░░░░░░░░░░░░   18.1 acc%/1K tok  │  93.3% acc  │  5,162 tokens
+slimjson       ████████████████████   45.0 acc%/1K tok  │  95.9% acc  │  2,134 tokens
+TOON           ███████████████░░░░░   34.3 acc%/1K tok  │  93.8% acc  │  2,734 tokens
+JSON compact   ██████████████░░░░░░   31.5 acc%/1K tok  │  96.7% acc  │  3,072 tokens
+YAML           ███████████░░░░░░░░░   25.2 acc%/1K tok  │  93.8% acc  │  3,716 tokens
+JSON           █████████░░░░░░░░░░░   20.7 acc%/1K tok  │  93.8% acc  │  4,538 tokens
+XML            ████████░░░░░░░░░░░░   18.4 acc%/1K tok  │  94.7% acc  │  5,162 tokens
 ```
 
 *Efficiency score = (Accuracy % ÷ Tokens) × 1,000. Higher is better.*
 
-> slimjson achieves **94.5%** accuracy (vs JSON's 92.3%) while using **53.0% fewer tokens**.
+> slimjson achieves **95.9%** accuracy (vs JSON's 93.8%) while using **53.0% fewer tokens**.
 
 #### Per-Model Accuracy
 
 ```
 deepseek-v4-flash
-  XML            ███████████████████░    95.7% (200/209)
-  JSON           ███████████████████░    95.7% (200/209)
-  JSON compact   ███████████████████░    95.2% (199/209)
-  YAML           ███████████████████░    94.3% (197/209)
-→ slimjson       ███████████████████░    93.3% (195/209)
-  TOON           ███████████████████░    92.8% (194/209)
-  CSV            ██████████████████░░    91.7% (100/109)
+  XML            ███████████████████░    97.1% (203/209)
+  JSON           ███████████████████░    97.1% (203/209)
+  JSON compact   ███████████████████░    96.7% (202/209)
+  YAML           ███████████████████░    95.7% (200/209)
+→ slimjson       ███████████████████░    94.7% (198/209)
+  CSV            ███████████████████░    94.5% (103/109)
+  TOON           ███████████████████░    94.3% (197/209)
 
 mimo-v2.5-pro
-→ slimjson       ███████████████████░    95.7% (200/209)
-  JSON compact   ███████████████████░    95.2% (199/209)
-  TOON           ██████████████████░░    91.9% (192/209)
-  XML            ██████████████████░░    90.9% (190/209)
-  YAML           ██████████████████░░    90.4% (189/209)
-  JSON           ██████████████████░░    89.0% (186/209)
-  CSV            ██████████████████░░    88.1% (96/109)
+→ slimjson       ███████████████████░    97.1% (203/209)
+  JSON compact   ███████████████████░    96.7% (202/209)
+  TOON           ███████████████████░    93.3% (195/209)
+  XML            ██████████████████░░    92.3% (193/209)
+  YAML           ██████████████████░░    91.9% (192/209)
+  CSV            ██████████████████░░    90.8% (99/109)
+  JSON           ██████████████████░░    90.4% (189/209)
 ```
 
 #### Accuracy by Question Type
@@ -477,9 +477,9 @@ mimo-v2.5-pro
 | Question Type | JSON compact | slimjson | XML | JSON | TOON | YAML | CSV |
 |---------------|-------------|----------|-----|------|------|------|-----|
 | Field Retrieval | 99.3% | 98.5% | 98.5% | 99.3% | 95.6% | 98.5% | 98.4% |
-| Aggregation | 94.4% | 96.0% | 88.9% | 89.7% | 92.9% | 90.5% | 84.5% |
+| Aggregation | 96.0% | 97.6% | 90.5% | 91.3% | 94.4% | 92.1% | 87.9% |
 | Filtering | 97.9% | 96.9% | 94.8% | 91.7% | 93.8% | 92.7% | 88.9% |
-| Structure Awareness | 88.0% | 88.0% | 90.0% | 90.0% | 90.0% | 88.0% | 87.5% |
+| Structure Awareness | 96.0% | 96.0% | 98.0% | 98.0% | 98.0% | 96.0% | 100.0% |
 | Structural Validation | 60.0% | 30.0% | 80.0% | 50.0% | 40.0% | 50.0% | 80.0% |
 
 #### Datasets Tested

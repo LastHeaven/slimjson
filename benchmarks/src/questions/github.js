@@ -80,7 +80,7 @@ export function generateGithubQuestions(repos, getId) {
       .build(),
     new QuestionBuilder()
       .id(getId())
-      .prompt('What is the average number of stars per repository?')
+      .prompt('What is the average number(integer) of stars per repository?')
       .groundTruth(String(Math.round(avgStars)))
       .type('aggregation')
       .dataset('github')
