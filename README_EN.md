@@ -13,6 +13,10 @@ A lightweight object array compression tool — converts JSON object arrays with
 - **LLM Tool Calling**: function calling / tool_use results are often structured object arrays — compressing them before feeding back to the model significantly reduces context window usage, enabling the model to handle more complex data within limited tokens
 - **LLM-Friendly Format**: The compressed `{ schema, data }` format separates schema (field definitions) from data, with each key appearing only once. Models can more accurately understand data structures and extract information by field name, with less confusion compared to raw JSON with repeated keys
 
+## LLM Optimization Tips
+
+- **Add index numbers to lists**: Including explicit indices (e.g., `id: 0, 1, 2...`) in your data array helps LLMs return index references more accurately when referencing specific records, reducing misalignment errors.
+
 ## Installation
 
 ```bash
