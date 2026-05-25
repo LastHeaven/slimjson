@@ -13,7 +13,6 @@ export const DRY_RUN_LIMITS = {
 }
 
 export const MODEL_RPM_LIMITS = {
-  'deepseek-v4-flash': 50,
 }
 
 export const FORMATTER_DISPLAY_NAMES = {

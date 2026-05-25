@@ -18,6 +18,25 @@ const RATE_LIMIT_INTERVAL_MS = 60_000
 
 prompts.intro('Retrieval Accuracy Benchmark')
 
+const RETRY_DELAYS = [5_000, 10_000, 15_000, 30_000, 60_000]
+const MAX_RETRIES = RETRY_DELAYS.length
+
+async function withRetry(fn, taskDesc) {
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      return await fn()
+    } catch (err) {
+      if (attempt < MAX_RETRIES) {
+        const delay = RETRY_DELAYS[attempt]
+        prompts.log.warn(`Retry ${attempt + 1}/${MAX_RETRIES} for ${taskDesc} after ${delay / 1000}s: ${err.message}`)
+        await new Promise(resolve => setTimeout(resolve, delay))
+      } else {
+        throw err
+      }
+    }
+  }
+}
+
 function generateEvaluationTasks(questions) {
   const tasks = []
 
@@ -142,14 +161,19 @@ for (const model of activeModels) {
       const formatter = formatters[task.formatName]
       const formattedData = formatter(dataset.data)
 
-      const result = await evaluateQuestion({
-        question: task.question,
-        formatName: task.formatName,
-        formattedData,
-        model,
-      })
+      const taskDesc = `${task.question.dataset}/${task.formatName}`
 
-      // Progress update after task completes
+      const result = await withRetry(
+        () =>
+          evaluateQuestion({
+            question: task.question,
+            formatName: task.formatName,
+            formattedData,
+            model,
+          }),
+        taskDesc,
+      )
+
       updateProgress()
 
       return result

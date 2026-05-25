@@ -12,9 +12,17 @@ const mimo = createOpenAI({
     apiKey: process.env.MIMO_TOKEN_PLAN_API_KEY,
 })
 
+
+const zen = createOpenAI({
+  baseURL: 'https://opencode.ai/zen/v1',
+  apiKey: process.env.OPENCODE_ZEN_API_KEY,
+})
+
 export const models = [
   deepseek.chat('deepseek-v4-flash'),
-  mimo.chat('mimo-v2.5-pro')
+  mimo.chat('mimo-v2.5-pro'),
+  zen.chat('big-pickle'),
+  zen.chat('nemotron-3-super-free')
 ]
 
 export const PRIMERS = {
